@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #080c14;
+    color: #f1f5f9;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Custom Cyber/SOC scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d131f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Cyber grid background utility */
+.cyber-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(30, 41, 59, 0.2) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 41, 59, 0.2) 1px, transparent 1px);
+}
+
+.radar-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.radar-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.08), transparent);
+  animation: sweep 4s infinite linear;
+}
+
+@keyframes sweep {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(300%); }
+}
+
+/* Subtle glow for critical alerts without being tacky */
+.alert-glow-red {
+  box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.25);
+}
+
+.alert-glow-orange {
+  box-shadow: 0 0 15px -3px rgba(249, 115, 22, 0.25);
+}
+
+.alert-glow-blue {
+  box-shadow: 0 0 15px -3px rgba(59, 130, 246, 0.25);
+}
