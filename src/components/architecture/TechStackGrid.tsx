@@ -1,103 +1,80 @@
 import React from 'react';
-import { 
-  Code, 
-  Layers, 
-  Cpu, 
-  Database, 
-  Radio, 
-  ShieldCheck, 
-  Terminal, 
-  Boxes 
-} from 'lucide-react';
+import { Code, Layers, Cpu, Database, Radio, Terminal, Boxes } from 'lucide-react';
 
 export const TechStackGrid: React.FC = () => {
   const stack = [
     {
       category: 'Frontend SOC & UI',
       icon: Code,
-      color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-      technologies: ['React 19', 'TypeScript', 'Tailwind CSS', 'Lucide Icons', 'SVG Canvas Charts'],
+      technologies: ['React 19', 'TypeScript', 'Tailwind CSS', 'Lucide icons', 'SVG canvas charts'],
       purpose: 'High-density, presentation-ready SOC dashboard and attack simulation interface.',
     },
     {
-      category: 'Backend & Orchestration',
+      category: 'Backend & orchestration',
       icon: Terminal,
-      color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-      technologies: ['Python 3.11', 'FastAPI', 'Uvicorn ASGI', 'Pydantic v2', 'REST Endpoints'],
-      purpose: 'High-throughput asynchronous API handling telemetry streams and attack execution.',
+      technologies: ['Python 3.11', 'FastAPI', 'Uvicorn ASGI', 'Pydantic v2', 'REST endpoints'],
+      purpose: 'Asynchronous API handling telemetry streams and attack execution.',
     },
     {
-      category: 'Network Capture & Sensor',
+      category: 'Network capture & sensor',
       icon: Radio,
-      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
-      technologies: ['Zeek (Bro) Network Monitor', 'Suricata IDS', 'libpcap', 'Promiscuous SPAN'],
-      purpose: 'Passive packet capture and bi-directional flow reassembly on mirror sensor port.',
+      technologies: ['Zeek (Bro)', 'Suricata IDS', 'libpcap', 'Promiscuous SPAN'],
+      purpose: 'Designed passive packet capture and flow reassembly — not implemented in this build (DEMO/HYBRID only).',
     },
     {
-      category: 'AI / Machine Learning',
+      category: 'AI / machine learning',
       icon: Cpu,
-      color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
-      technologies: ['XGBoost Classifier', 'scikit-learn 1.4', 'Isolation Forest', 'SHAP Explainability'],
-      purpose: 'Sub-15ms multi-class classification, anomaly scoring, and explainable feature attribution.',
+      technologies: ['XGBoost classifier', 'scikit-learn', 'Isolation forest', 'SHAP explainability'],
+      purpose: 'Designed multi-class classification and explainable attribution — simulated in this build, no trained model is loaded.',
     },
     {
-      category: 'Real-Time Streaming & DB',
+      category: 'Real-time streaming & persistence',
       icon: Database,
-      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-      technologies: ['WebSockets (RFC 6455)', 'PostgreSQL 16', 'TimescaleDB', 'Redis Pub/Sub'],
-      purpose: 'Low-latency broadcast of flow events and persistent historical threat logging.',
+      technologies: ['WebSockets', 'SQLite'],
+      purpose: 'Low-latency broadcast of flow events and persistent threat history.',
     },
     {
-      category: 'Deployment & Isolation',
+      category: 'Deployment & isolation',
       icon: Boxes,
-      color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-      technologies: ['Docker Compose', 'Managed VLAN 100', 'Kali Linux 2024.1', 'Ubuntu 22.04 LTS'],
-      purpose: 'Containerized microservices and physically segmented laboratory test network.',
+      technologies: ['Docker Compose', 'Managed VLAN 100', 'Kali Linux', 'Ubuntu 22.04 LTS'],
+      purpose: 'Containerized services and a physically segmented lab test network.',
     },
   ];
 
   return (
-    <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-6 shadow-xl">
-      <div className="flex items-center gap-2.5 pb-4 border-b border-[#182438]">
-        <Layers className="w-5 h-5 text-blue-400" />
+    <div className="bg-ink-800 border border-line-700 p-5">
+      <div className="flex items-center gap-2.5 pb-4 border-b border-line-700">
+        <Layers className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
         <div>
-          <h3 className="font-bold text-base text-white">Full Technology Stack Breakdown</h3>
-          <p className="text-xs text-slate-400">Enterprise cybersecurity components used across PC 1 and PC 2</p>
+          <h3 className="text-[14px] text-paper-100">Full technology stack breakdown</h3>
+          <p className="text-[12px] text-paper-600">Components across PC 1 and PC 2 — designed vs. implemented noted per row</p>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-line-700">
         {stack.map((item) => {
           const Icon = item.icon;
 
           return (
-            <div
-              key={item.category}
-              className="p-4 rounded-xl bg-[#080d17] border border-[#162238] flex flex-col justify-between"
-            >
+            <div key={item.category} className="p-4 bg-ink-900 flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <div className={`p-2 rounded-lg border ${item.color}`}>
-                    <Icon className="w-4 h-4" />
+                  <div className="p-2 bg-ink-850 border border-line-600 text-phos-400">
+                    <Icon className="w-3.5 h-3.5" strokeWidth={1.75} />
                   </div>
-                  <h4 className="text-xs font-bold text-white font-sans">{item.category}</h4>
+                  <h4 className="text-[12px] text-paper-100 font-sans">{item.category}</h4>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-1.5 font-mono text-[10px]">
                   {item.technologies.map((tech) => (
-                    <span
-                      key={tech}
-                      className="px-2 py-0.5 rounded bg-[#0f172a] border border-[#1e293b] text-slate-300"
-                    >
+                    <span key={tech} className="px-1.5 py-0.5 border border-line-600 text-paper-400">
                       {tech}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <p className="mt-4 pt-3 border-t border-[#141e30] text-[11px] text-slate-400 leading-relaxed font-sans">
-                {item.purpose}
-              </p>
+              <p className="mt-4 pt-3 border-t border-line-700 text-[11px] text-paper-600 leading-relaxed font-sans">{item.purpose}</p>
             </div>
           );
         })}

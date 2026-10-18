@@ -1,130 +1,93 @@
 import React from 'react';
-import { 
-  Crosshair, 
-  Server, 
-  Cpu, 
-  Lock, 
-  Radio, 
-  ArrowRight, 
-  ArrowDown, 
-  ShieldAlert, 
-  Activity, 
-  Database,
-  Binary,
-  Layers,
-  Sparkles,
-  GitBranch
-} from 'lucide-react';
+import { Crosshair, Cpu, Radio, GitBranch } from 'lucide-react';
 
 export const PhysicalLabDiagram: React.FC = () => {
   return (
-    <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-6 shadow-xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#182438]">
+    <div className="bg-ink-800 border border-line-700 p-5 space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-line-700">
         <div className="flex items-center gap-2.5">
-          <GitBranch className="w-5 h-5 text-blue-400" />
+          <GitBranch className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
           <div>
-            <h3 className="font-bold text-base text-white">Full Physical & Logical Cybersecurity Architecture</h3>
-            <p className="text-xs text-slate-400">Two-PC hardware deployment with hardware port mirroring and decoupled AI pipeline</p>
+            <h3 className="text-[14px] text-paper-100">Full physical & logical architecture</h3>
+            <p className="text-[12px] text-paper-600">Designed two-PC deployment with port mirroring and a decoupled AI pipeline</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 font-mono text-xs">
-          <span className="px-2.5 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            Isolated Subnet: 192.168.100.0/24
-          </span>
-        </div>
+        <span className="text-[12px] font-mono text-paper-600">Isolated subnet 192.168.100.0/24</span>
       </div>
 
       {/* Layer 1: Physical Machines & Network */}
-      <div className="p-5 rounded-xl bg-[#080d17] border border-[#162238] space-y-4">
-        <div className="text-xs font-mono font-bold uppercase text-slate-400 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-blue-400" />
-          <span>Physical Hardware Layer</span>
-        </div>
+      <div className="p-5 bg-ink-850 border border-line-700 space-y-4">
+        <div className="text-[11px] font-mono text-phos-600 uppercase tracking-wide">Physical hardware layer</div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-          {/* PC 1 */}
-          <div className="p-4 rounded-xl bg-[#0d1424] border border-red-500/30">
-            <div className="flex items-center justify-between pb-2 border-b border-[#182438]">
-              <span className="text-red-400 font-bold">PC 1: ATTACK LAB</span>
-              <Crosshair className="w-4 h-4 text-red-400" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-line-700 font-mono text-[12px]">
+          <div className="p-4 bg-ink-900">
+            <div className="flex items-center justify-between pb-2 border-b border-line-700">
+              <span className="text-paper-100">PC 1: Attack lab</span>
+              <Crosshair className="w-3.5 h-3.5 text-paper-600" strokeWidth={1.75} />
             </div>
-            <div className="mt-2 text-slate-300 space-y-1 text-[11px]">
-              <div>IP: <strong className="text-white">192.168.100.10</strong></div>
+            <div className="mt-2 text-paper-300 space-y-1 text-[11px]">
+              <div>IP <span className="text-paper-100">192.168.100.10</span></div>
               <div>OS: Kali Linux 2024.1</div>
               <div>Stack: Python, nmap, hping3, hydra</div>
-              <div>Role: Controlled Test Generator</div>
+              <div>Role: controlled test generator</div>
             </div>
           </div>
 
-          {/* Switch */}
-          <div className="p-4 rounded-xl bg-[#0d1424] border border-blue-500/30 text-center flex flex-col justify-between">
-            <div className="flex items-center justify-between pb-2 border-b border-[#182438]">
-              <span className="text-blue-400 font-bold">MANAGED SWITCH</span>
-              <Radio className="w-4 h-4 text-blue-400 animate-pulse" />
+          <div className="p-4 bg-ink-900 text-center flex flex-col justify-between">
+            <div className="flex items-center justify-between pb-2 border-b border-line-700">
+              <span className="text-paper-100">Managed switch</span>
+              <Radio className="w-3.5 h-3.5 text-paper-600" strokeWidth={1.75} />
             </div>
-            <div className="mt-2 text-slate-300 space-y-1 text-[11px]">
-              <div>Cisco SG350-10P Gigabit</div>
-              <div>Port 1: PC 1 (Attacker)</div>
-              <div>Port 2: Lab Target (Victim)</div>
-              <div className="text-cyan-400 font-bold">Port 8: SPAN Mirror Out → PC 2</div>
+            <div className="mt-2 text-paper-300 space-y-1 text-[11px] text-left">
+              <div>Cisco SG350-10P gigabit</div>
+              <div>Port 1: PC 1 (attacker)</div>
+              <div>Port 2: lab target (victim)</div>
+              <div className="text-phos-400">Port 8: SPAN mirror out → PC 2</div>
             </div>
           </div>
 
-          {/* PC 2 */}
-          <div className="p-4 rounded-xl bg-[#0d1424] border border-cyan-500/30">
-            <div className="flex items-center justify-between pb-2 border-b border-[#182438]">
-              <span className="text-cyan-400 font-bold">PC 2: AI-NIDS SENSOR</span>
-              <Cpu className="w-4 h-4 text-cyan-400" />
+          <div className="p-4 bg-ink-900">
+            <div className="flex items-center justify-between pb-2 border-b border-line-700">
+              <span className="text-paper-100">PC 2: AI-NIDS sensor</span>
+              <Cpu className="w-3.5 h-3.5 text-paper-600" strokeWidth={1.75} />
             </div>
-            <div className="mt-2 text-slate-300 space-y-1 text-[11px]">
-              <div>IP: <strong className="text-white">192.168.100.30</strong></div>
+            <div className="mt-2 text-paper-300 space-y-1 text-[11px]">
+              <div>IP <span className="text-paper-100">192.168.100.30</span></div>
               <div>OS: Ubuntu 22.04 LTS</div>
               <div>Stack: Zeek, Suricata, XGBoost, FastAPI</div>
-              <div>Role: Sensor, ML Inference & SOC Host</div>
+              <div>Role: sensor, ML inference & SOC host</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Layer 2: Complete Data Flow Pipeline */}
-      <div className="p-5 rounded-xl bg-[#080d17] border border-[#162238] space-y-4">
-        <div className="text-xs font-mono font-bold uppercase text-slate-400 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400" />
-          <span>PC 2 Internal Processing Pipeline Architecture</span>
-        </div>
+      <div className="p-5 bg-ink-850 border border-line-700 space-y-4">
+        <div className="text-[11px] font-mono text-phos-600 uppercase tracking-wide">PC 2 internal processing pipeline</div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
-          <div className="p-3.5 rounded-xl bg-[#0d1424] border border-[#1b2a45]">
-            <div className="text-[10px] text-slate-400 uppercase">Stage 1: Capture & Sensor</div>
-            <h4 className="font-bold text-white mt-1">Zeek + Suricata</h4>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">
-              Passive raw frame capture on promiscuous SPAN interface. Reassembles TCP flows.
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-line-700 font-mono text-[12px]">
+          <div className="p-3.5 bg-ink-900">
+            <div className="text-[10px] text-paper-600 uppercase">Stage 1: capture & sensor</div>
+            <h4 className="text-paper-100 mt-1">Zeek + Suricata</h4>
+            <p className="text-[10px] text-paper-600 font-sans mt-1">Passive raw frame capture on a promiscuous SPAN interface; reassembles TCP flows.</p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#0d1424] border border-[#1b2a45]">
-            <div className="text-[10px] text-slate-400 uppercase">Stage 2: Feature Engine</div>
-            <h4 className="font-bold text-white mt-1">78-Feature Extractor</h4>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">
-              Calculates packet IAT, flag ratios, entropy, and directional byte statistics per window.
-            </p>
+          <div className="p-3.5 bg-ink-900">
+            <div className="text-[10px] text-paper-600 uppercase">Stage 2: feature engine</div>
+            <h4 className="text-paper-100 mt-1">78-feature extractor</h4>
+            <p className="text-[10px] text-paper-600 font-sans mt-1">Calculates packet IAT, flag ratios, entropy, and directional byte statistics per window.</p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#0d1424] border border-[#1b2a45]">
-            <div className="text-[10px] text-slate-400 uppercase">Stage 3: AI Inference</div>
-            <h4 className="font-bold text-blue-400 mt-1">XGBoost + IsoForest</h4>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">
-              Performs multi-class classification and unsupervised anomaly detection in 14ms.
-            </p>
+          <div className="p-3.5 bg-ink-900">
+            <div className="text-[10px] text-paper-600 uppercase">Stage 3: AI inference</div>
+            <h4 className="text-phos-400 mt-1">XGBoost + IsoForest</h4>
+            <p className="text-[10px] text-paper-600 font-sans mt-1">Multi-class classification and unsupervised anomaly detection in ~14ms.</p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#0d1424] border border-[#1b2a45]">
-            <div className="text-[10px] text-slate-400 uppercase">Stage 4: Real-Time SOC</div>
-            <h4 className="font-bold text-emerald-400 mt-1">FastAPI & WebSocket</h4>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">
-              Broadcasts threat detections and XAI explanations to React SOC dashboard under 438ms.
-            </p>
+          <div className="p-3.5 bg-ink-900">
+            <div className="text-[10px] text-paper-600 uppercase">Stage 4: real-time SOC</div>
+            <h4 className="text-phos-400 mt-1">FastAPI & WebSocket</h4>
+            <p className="text-[10px] text-paper-600 font-sans mt-1">Broadcasts threat detections and XAI explanations to the React SOC dashboard.</p>
           </div>
         </div>
       </div>

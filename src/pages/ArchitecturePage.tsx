@@ -6,20 +6,14 @@ export const ArchitecturePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#1b273d]">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-line-700">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-white tracking-wide font-sans">
-              System Architecture & Physical Deployment Specs
-            </h1>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30">
-              PHYSICAL 2-PC DEPLOYMENT
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Hardware topology, port-mirroring sensor taps, feature pipelines, and decoupled C2 communications
+          <h1 className="text-xl font-medium text-paper-100">System architecture & physical deployment</h1>
+          <p className="text-[13px] text-paper-400 mt-1 max-w-[70ch]">
+            The designed two-PC hardware topology, sensor taps, feature pipeline, and decoupled C2 channel — see README §2/§3 for which parts are implemented today vs. designed for a future real-sensor build.
           </p>
         </div>
+        <span className="text-[12px] font-mono text-paper-600">Physical 2-PC deployment</span>
       </div>
 
       {/* Physical Hardware & Flow Diagram */}

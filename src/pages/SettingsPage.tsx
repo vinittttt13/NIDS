@@ -1,30 +1,11 @@
 import React, { useState } from 'react';
 import { useNids } from '../context/NidsContext';
-import { 
-  Settings, 
-  Save, 
-  Lock, 
-  Cpu, 
-  Radio, 
-  Check, 
-  RefreshCw, 
-  Activity, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Server, 
-  Wifi, 
-  Network,
-  Monitor,
-  Terminal,
-  Layers,
-  Database
-} from 'lucide-react';
-import { LAB_ATTACKER_IP, LAB_TARGET_IP, LAB_SENSOR_IP } from '../services/attackService';
+import { Save, Check, RefreshCw, Activity, CheckCircle2, AlertTriangle, Wifi, Network, Monitor, Cpu, Radio } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
-  const { 
-    mode, 
-    setMode, 
+  const {
+    mode,
+    setMode,
     clientRole,
     setClientRole,
     transportMode,
@@ -37,10 +18,8 @@ export const SettingsPage: React.FC = () => {
     runDiagnosticTest,
     testSensorConnection,
     testAiEngineConnection,
-    soundEnabled, 
-    setSoundEnabled, 
-    featureSchema, 
-    setFeatureSchema 
+    soundEnabled,
+    setSoundEnabled,
   } = useNids();
 
   const [threshold, setThreshold] = useState(85);
@@ -77,189 +56,133 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#1b273d]">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-line-700">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-white tracking-wide font-sans">
-              Laboratory Diagnostics & System Settings
-            </h1>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30">
-              TRANSPORT: {activeTransport} (AUTO-DISCOVERED)
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time diagnostics, authoritative event feed status, network transport selection, and detection parameters.
+          <h1 className="text-xl font-medium text-paper-100">Laboratory diagnostics & system settings</h1>
+          <p className="text-[13px] text-paper-400 mt-1 max-w-[70ch]">
+            Live diagnostics, event feed status, network transport selection, and detection parameters.
           </p>
         </div>
 
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold transition-all shadow-md"
+          className="flex items-center gap-2 px-4 py-2 bg-phos-400 hover:bg-phos-500 text-ink-950 text-[12px] font-medium transition-colors"
         >
-          {saved ? <Check className="w-4 h-4 text-emerald-300" /> : <Save className="w-4 h-4" />}
-          <span>{saved ? 'SETTINGS SAVED' : 'SAVE CONFIGURATION'}</span>
+          {saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+          <span>{saved ? 'Settings saved' : 'Save configuration'}</span>
         </button>
       </div>
 
-      {/* 1. Live Authoritative System Diagnostics Section (Spec #14) */}
-      <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#182438]">
+      {/* Live Diagnostics */}
+      <div className="bg-ink-800 border border-line-700 p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line-700">
           <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-cyan-400" />
-            <h3 className="font-bold text-base text-white font-mono">1. Live Central Diagnostics & Event Bus</h3>
+            <Activity className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
+            <h3 className="text-[14px] text-paper-100">Live diagnostics & event bus</h3>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={refreshNetworkInterfaces}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#121c2e] hover:bg-[#1a2942] border border-[#1e2e4b] text-slate-300 text-xs font-mono transition-all"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-ink-900 hover:bg-ink-700 border border-line-600 text-paper-300 text-[12px] font-mono transition-colors"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>REFRESH</span>
+              <RefreshCw className="w-3 h-3" />
+              <span>Refresh</span>
             </button>
             <button
               onClick={handleTestConnection}
               disabled={testing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-semibold transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-ink-900 hover:bg-ink-700 border border-phos-700 text-phos-400 text-[12px] font-mono transition-colors disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
-              <span>{testing ? 'TESTING...' : 'PING NIDS API'}</span>
+              <RefreshCw className={`w-3 h-3 ${testing ? 'animate-spin' : ''}`} />
+              <span>{testing ? 'Testing…' : 'Ping NIDS API'}</span>
             </button>
           </div>
         </div>
 
         {/* Live Diagnostics Key-Value Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono text-xs">
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">PC ROLE</span>
-            <div className="font-bold text-sm text-white truncate">{systemDiagnostics.pcRole}</div>
-            <span className="text-[10px] text-slate-500">Client Role Setting</span>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-line-700 font-mono text-[12px]">
+          <Diag label="PC role" value={systemDiagnostics.pcRole} caption="Client role setting" />
+          <Diag label="Client / local IP" value={systemDiagnostics.clientIp} caption="Active host endpoint" />
+          <Diag label="NIDS server IP" value={systemDiagnostics.nidsServerIp} caption="PC 2 authoritative API" />
 
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">CLIENT / LOCAL IP</span>
-            <div className="font-bold text-sm text-cyan-300 truncate">{systemDiagnostics.clientIp}</div>
-            <span className="text-[10px] text-slate-500">Active Host Endpoint</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">NIDS SERVER IP</span>
-            <div className="font-bold text-sm text-emerald-300 truncate">{systemDiagnostics.nidsServerIp}</div>
-            <span className="text-[10px] text-slate-500">PC 2 Authoritative API</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">API STATUS</span>
-            <div className="font-bold text-sm text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+          <div className="p-3 bg-ink-900 space-y-1">
+            <span className="text-[10px] text-phos-600 uppercase">API status</span>
+            <div className={`text-[13px] flex items-center gap-1.5 ${connectionStatus.nidsApiConnected ? 'text-phos-400' : 'text-sev-critical'}`}>
+              {connectionStatus.nidsApiConnected ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
               <span>{connectionStatus.nidsApiConnected ? 'CONNECTED' : 'DISCONNECTED'}</span>
             </div>
-            <span className="text-[10px] text-slate-500">Port 8000 REST ({connectionStatus.latencyMs}ms)</span>
+            <span className="text-[10px] text-paper-600">Port 8000 REST ({connectionStatus.latencyMs}ms)</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">WEBSOCKET FEED</span>
-            <div className="font-bold text-sm flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${connectionStatus.wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-              <span className={connectionStatus.wsConnected ? 'text-emerald-400' : 'text-amber-400'}>
+          <div className="p-3 bg-ink-900 space-y-1">
+            <span className="text-[10px] text-phos-600 uppercase">WebSocket feed</span>
+            <div className="text-[13px] flex items-center gap-1.5">
+              <span className={`w-[6px] h-[6px] rounded-full ${connectionStatus.wsConnected ? 'bg-phos-400 shadow-live' : 'bg-sev-medium'}`} />
+              <span className={connectionStatus.wsConnected ? 'text-phos-400' : 'text-sev-medium'}>
                 {connectionStatus.wsConnected ? 'CONNECTED' : 'STANDBY'}
               </span>
             </div>
-            <span className="text-[10px] text-slate-500">ws://{systemDiagnostics.nidsServerIp?.split(':')[0] || 'NOT DETECTED'}:8000/ws/live</span>
+            <span className="text-[10px] text-paper-600">ws://{systemDiagnostics.nidsServerIp?.split(':')[0] || 'NOT DETECTED'}:8000/ws/live</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">NETWORK INTERFACE</span>
-            <div className="font-bold text-sm text-purple-300">{activeTransport}</div>
-            <span className="text-[10px] text-slate-500">Auto-Discovered Transport</span>
+          <Diag label="Network interface" value={activeTransport} caption="Auto-discovered transport" />
+
+          <div className="p-3 bg-ink-900 space-y-1">
+            <span className="text-[10px] text-phos-600 uppercase">Sensor status</span>
+            <div className={`text-[13px] ${connectionStatus.sensorMode === 'LIVE' ? 'text-phos-400' : 'text-paper-400'}`}>{connectionStatus.sensorMode}</div>
+            <span className="text-[10px] text-paper-600">Simulated capture (no real sensor wired in)</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">SENSOR STATUS</span>
-            <div className={`font-bold text-sm ${connectionStatus.sensorMode === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {connectionStatus.sensorMode}
-            </div>
-            <span className="text-[10px] text-slate-500">Zeek / Suricata Capture</span>
+          <div className="p-3 bg-ink-900 space-y-1">
+            <span className="text-[10px] text-phos-600 uppercase">AI engine status</span>
+            <div className="text-[13px] text-paper-400">{connectionStatus.aiEngineMode}</div>
+            <span className="text-[10px] text-paper-600">No trained model is loaded</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">AI ENGINE STATUS</span>
-            <div className="font-bold text-sm text-cyan-400">{connectionStatus.aiEngineMode}</div>
-            <span className="text-[10px] text-slate-500">XGBoost v1.4.2 Engine</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">EVENTS RECEIVED</span>
-            <div className="font-bold text-sm text-white">{systemDiagnostics.eventsReceivedCount}</div>
-            <span className="text-[10px] text-slate-500">WebSocket Ingested</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">EVENTS DROPPED / DUP</span>
-            <div className="font-bold text-sm text-slate-300">{systemDiagnostics.eventsDroppedCount}</div>
-            <span className="text-[10px] text-slate-500">Deduplicated by event_id</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">LAST EVENT ID</span>
-            <div className="font-bold text-xs text-blue-300 truncate">{systemDiagnostics.lastEventId}</div>
-            <span className="text-[10px] text-slate-500">Type: {systemDiagnostics.lastEventType}</span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#080d17] border border-[#162238] space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase">LAST EVENT TIME</span>
-            <div className="font-bold text-sm text-white">{systemDiagnostics.lastEventTimestamp}</div>
-            <span className="text-[10px] text-slate-500">Server Event Timestamp</span>
-          </div>
+          <Diag label="Events received" value={String(systemDiagnostics.eventsReceivedCount)} caption="WebSocket ingested" />
+          <Diag label="Events dropped / dup" value={String(systemDiagnostics.eventsDroppedCount)} caption="Deduplicated by event_id" />
+          <Diag label="Last event ID" value={systemDiagnostics.lastEventId} caption={`Type: ${systemDiagnostics.lastEventType}`} />
+          <Diag label="Last event time" value={systemDiagnostics.lastEventTimestamp} caption="Server event timestamp" />
         </div>
 
         {/* Action buttons for Sensor and AI test */}
         <div className="flex flex-wrap items-center gap-3 pt-2">
           <button
             onClick={handleTestSensor}
-            className="px-3 py-1.5 rounded-lg bg-[#142033] hover:bg-[#1b2b45] border border-[#20314f] text-xs font-mono text-cyan-300 transition-all"
+            className="px-2.5 py-1.5 bg-ink-900 hover:bg-ink-700 border border-line-600 text-[12px] font-mono text-paper-300 transition-colors"
           >
-            TEST SENSOR STATUS
+            Test sensor status
           </button>
           <button
             onClick={handleTestAi}
-            className="px-3 py-1.5 rounded-lg bg-[#142033] hover:bg-[#1b2b45] border border-[#20314f] text-xs font-mono text-purple-300 transition-all"
+            className="px-2.5 py-1.5 bg-ink-900 hover:bg-ink-700 border border-line-600 text-[12px] font-mono text-paper-300 transition-colors"
           >
-            TEST AI ENGINE
+            Test AI engine
           </button>
-          {sensorResult && (
-            <span className="text-[11px] font-mono text-cyan-400">
-              Sensor: {sensorResult.mode || sensorResult.status}
-            </span>
-          )}
-          {aiResult && (
-            <span className="text-[11px] font-mono text-purple-400">
-              AI: {aiResult.engine || aiResult.status}
-            </span>
-          )}
+          {sensorResult && <span className="text-[11px] font-mono text-phos-400">Sensor: {sensorResult.mode || sensorResult.status}</span>}
+          {aiResult && <span className="text-[11px] font-mono text-phos-400">AI: {aiResult.engine || aiResult.status}</span>}
         </div>
       </div>
 
-      {/* 2. Detected Network Adapters */}
-      <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-[#182438]">
-          <Network className="w-5 h-5 text-purple-400" />
-          <h3 className="font-bold text-base text-white font-mono">2. Detected Network Interfaces</h3>
+      {/* Detected Network Interfaces */}
+      <div className="bg-ink-800 border border-line-700 p-5 space-y-3">
+        <div className="flex items-center gap-2 pb-2 border-b border-line-700">
+          <Network className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
+          <h3 className="text-[14px] text-paper-100">Detected network interfaces</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-line-700 font-mono text-[12px]">
           {networkInterfaces.map((iface, idx) => (
-            <div key={idx} className="p-3 rounded-xl bg-[#080d17] border border-[#162238] flex items-center justify-between">
+            <div key={idx} className="p-3 bg-ink-900 flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-1.5 font-bold text-white">
-                  {iface.type === 'Wi-Fi' ? <Wifi className="w-3.5 h-3.5 text-blue-400" /> : <Network className="w-3.5 h-3.5 text-emerald-400" />}
+                <div className="flex items-center gap-1.5 text-paper-100">
+                  {iface.type === 'Wi-Fi' ? <Wifi className="w-3.5 h-3.5 text-paper-600" /> : <Network className="w-3.5 h-3.5 text-paper-600" />}
                   <span>{iface.name}</span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">IP: <span className="text-slate-200">{iface.ip}</span></div>
+                <div className="text-[11px] text-paper-600 mt-0.5">IP <span className="text-paper-300">{iface.ip}</span></div>
               </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                iface.status === 'Connected' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'
-              }`}>
+              <span className={`text-[10px] px-1.5 py-0.5 border ${iface.status === 'Connected' ? 'text-phos-400 border-phos-700' : 'text-paper-600 border-line-600'}`}>
                 {iface.status}
               </span>
             </div>
@@ -267,95 +190,69 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Transport Preference Selection */}
-      <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-[#182438]">
-          <Network className="w-5 h-5 text-purple-400" />
-          <h3 className="font-bold text-base text-white font-mono">3. Transport Preference</h3>
+      {/* Transport Preference Selection */}
+      <div className="bg-ink-800 border border-line-700 p-5 space-y-3">
+        <div className="flex items-center gap-2 pb-2 border-b border-line-700">
+          <Radio className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
+          <h3 className="text-[14px] text-paper-100">Transport preference</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line-700 font-mono text-[12px]">
           {(['AUTO', 'ETHERNET', 'WI-FI'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTransportMode(t)}
-              className={`p-3.5 rounded-xl border text-left transition-all ${
-                transportMode === t
-                  ? 'bg-purple-950/40 border-purple-500/50 text-white shadow-md'
-                  : 'bg-[#080d17] border-[#162238] text-slate-400 hover:border-slate-600'
-              }`}
+              className={`p-3.5 text-left transition-colors ${transportMode === t ? 'bg-ink-700 text-paper-100 border-l-2 border-phos-400' : 'bg-ink-900 text-paper-400 hover:text-paper-200'}`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="text-purple-300 font-bold">{t} TRANSPORT</span>
-                {transportMode === t && <Check className="w-4 h-4 text-purple-400" />}
+                <span className={transportMode === t ? 'text-phos-400' : 'text-paper-300'}>{t} transport</span>
+                {transportMode === t && <Check className="w-3.5 h-3.5 text-phos-400" />}
               </div>
-              <span className="text-[11px] block text-slate-400">
-                {t === 'AUTO' ? 'Auto-detect active link (Ethernet priority)' :
-                 t === 'ETHERNET' ? 'Force direct Ethernet link' : 'Operate over Wi-Fi AP'}
+              <span className="text-[11px] block text-paper-600">
+                {t === 'AUTO' ? 'Auto-detect active link (Ethernet priority)' : t === 'ETHERNET' ? 'Force direct Ethernet link' : 'Operate over Wi-Fi AP'}
               </span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* 4. Client Role Setting */}
-      <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-[#182438]">
-          <Monitor className="w-5 h-5 text-blue-400" />
-          <h3 className="font-bold text-base text-white font-mono">4. Client Role Setting</h3>
+      {/* Client Role Setting */}
+      <div className="bg-ink-800 border border-line-700 p-5 space-y-3">
+        <div className="flex items-center gap-2 pb-2 border-b border-line-700">
+          <Monitor className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
+          <h3 className="text-[14px] text-paper-100">Client role setting</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
-          <button
-            onClick={() => setClientRole('ATTACK_LAB')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              clientRole === 'ATTACK_LAB'
-                ? 'bg-red-950/40 border-red-500/50 text-white shadow-md'
-                : 'bg-[#080d17] border-[#162238] text-slate-400 hover:border-slate-600'
-            }`}
-          >
-            <span className="text-red-400 font-bold block mb-1">PC 1: ATTACK LAB</span>
-            <span className="text-[11px] block text-slate-300">Remote controller for scenarios & target telemetry.</span>
-          </button>
-
-          <button
-            onClick={() => setClientRole('NIDS_SOC')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              clientRole === 'NIDS_SOC'
-                ? 'bg-cyan-950/40 border-cyan-500/50 text-white shadow-md'
-                : 'bg-[#080d17] border-[#162238] text-slate-400 hover:border-slate-600'
-            }`}
-          >
-            <span className="text-cyan-400 font-bold block mb-1">PC 2: NIDS SOC</span>
-            <span className="text-[11px] block text-slate-300">Central detection authority & SOC dashboard.</span>
-          </button>
-
-          <button
-            onClick={() => setClientRole('UNIFIED')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
-              clientRole === 'UNIFIED'
-                ? 'bg-blue-950/40 border-blue-500/50 text-white shadow-md'
-                : 'bg-[#080d17] border-[#162238] text-slate-400 hover:border-slate-600'
-            }`}
-          >
-            <span className="text-blue-400 font-bold block mb-1">UNIFIED DUAL MODE</span>
-            <span className="text-[11px] block text-slate-300">Single-PC development and presentation mode.</span>
-          </button>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line-700 font-mono text-[12px]">
+          {([
+            { role: 'ATTACK_LAB' as const, label: 'PC 1: attack lab', desc: 'Remote controller for scenarios & target telemetry.' },
+            { role: 'NIDS_SOC' as const, label: 'PC 2: NIDS SOC', desc: 'Central detection authority & SOC dashboard.' },
+            { role: 'UNIFIED' as const, label: 'Unified dual mode', desc: 'Single-PC development and presentation mode.' },
+          ]).map(({ role, label, desc }) => (
+            <button
+              key={role}
+              onClick={() => setClientRole(role)}
+              className={`p-3.5 text-left transition-colors ${clientRole === role ? 'bg-ink-700 border-l-2 border-phos-400' : 'bg-ink-900 hover:text-paper-200'}`}
+            >
+              <span className={`block mb-1 ${clientRole === role ? 'text-phos-400' : 'text-paper-300'}`}>{label}</span>
+              <span className="text-[11px] block text-paper-600">{desc}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* 5. AI Detection Thresholds */}
-      <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-[#182438]">
-          <Cpu className="w-5 h-5 text-blue-400" />
-          <h3 className="font-bold text-base text-white font-mono">5. AI Classification & Risk Engine Thresholds</h3>
+      {/* AI Detection Thresholds */}
+      <div className="bg-ink-800 border border-line-700 p-5 space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-line-700">
+          <Cpu className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
+          <h3 className="text-[14px] text-paper-100">AI classification & risk engine thresholds</h3>
         </div>
 
-        <div className="space-y-3 font-mono text-xs">
+        <div className="space-y-3 font-mono text-[12px]">
           <div>
             <div className="flex justify-between mb-1.5">
-              <span className="text-slate-300 font-semibold">XGBoost Softmax Confidence Alert Threshold</span>
-              <span className="text-blue-400 font-bold">{threshold}%</span>
+              <span className="text-paper-300">XGBoost softmax confidence alert threshold</span>
+              <span className="text-phos-400">{threshold}%</span>
             </div>
             <input
               type="range"
@@ -363,14 +260,14 @@ export const SettingsPage: React.FC = () => {
               max="99"
               value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-1.5 bg-line-700 appearance-none cursor-pointer accent-phos-400"
             />
           </div>
 
           <div>
             <div className="flex justify-between mb-1.5">
-              <span className="text-slate-300 font-semibold">Isolation Forest Anomaly Sensitivity Cutoff</span>
-              <span className="text-amber-400 font-bold">{anomalySens.toFixed(2)}</span>
+              <span className="text-paper-300">Isolation forest anomaly sensitivity cutoff</span>
+              <span className="text-phos-400">{anomalySens.toFixed(2)}</span>
             </div>
             <input
               type="range"
@@ -379,49 +276,45 @@ export const SettingsPage: React.FC = () => {
               step="0.01"
               value={anomalySens}
               onChange={(e) => setAnomalySens(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+              className="w-full h-1.5 bg-line-700 appearance-none cursor-pointer accent-phos-400"
             />
           </div>
         </div>
       </div>
 
-      {/* 6. Audio & Mode Switches */}
-      <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-[#182438]">
-          <Radio className="w-5 h-5 text-emerald-400" />
-          <h3 className="font-bold text-base text-white font-mono">6. Audio & Operation Preferences</h3>
+      {/* Audio & Mode Switches */}
+      <div className="bg-ink-800 border border-line-700 p-5 space-y-3">
+        <div className="flex items-center gap-2 pb-2 border-b border-line-700">
+          <Radio className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
+          <h3 className="text-[14px] text-paper-100">Audio & operation preferences</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-          <div className="p-3.5 rounded-xl bg-[#080d17] border border-[#162238] flex items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-line-700 text-[12px] font-mono">
+          <div className="p-3.5 bg-ink-900 flex items-center justify-between">
             <div>
-              <span className="font-bold text-white block">Audible SOC Alarm Sound</span>
-              <span className="text-[10px] text-slate-400">Play alert audio on Critical threats</span>
+              <span className="text-paper-100 block">Audible SOC alarm sound</span>
+              <span className="text-[10px] text-paper-600">Play alert audio on critical threats</span>
             </div>
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`px-3 py-1 rounded-md text-[11px] font-bold ${
-                soundEnabled ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'
-              }`}
+              className={`px-2.5 py-1 text-[11px] border ${soundEnabled ? 'bg-phos-400 text-ink-950 border-phos-400' : 'bg-ink-800 text-paper-600 border-line-600'}`}
             >
               {soundEnabled ? 'ENABLED' : 'MUTED'}
             </button>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#080d17] border border-[#162238] flex items-center justify-between">
+          <div className="p-3.5 bg-ink-900 flex items-center justify-between">
             <div>
-              <span className="font-bold text-white block">System Operation Mode</span>
-              <span className="text-[10px] text-slate-400">DEMO, HYBRID, or LIVE LAN Mode</span>
+              <span className="text-paper-100 block">System operation mode</span>
+              <span className="text-[10px] text-paper-600">DEMO, HYBRID, or LIVE LAN mode</span>
             </div>
-            <div className="flex items-center gap-1">
-              {(['DEMO', 'HYBRID', 'LIVE'] as const).map(m => (
+            <div className="flex items-center text-[11px]">
+              {(['DEMO', 'HYBRID', 'LIVE'] as const).map((m, i) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className={`px-2 py-1 rounded text-[10px] font-bold ${
-                    mode === m
-                      ? m === 'LIVE' ? 'bg-emerald-600 text-white' : m === 'HYBRID' ? 'bg-blue-600 text-white' : 'bg-amber-600 text-white'
-                      : 'bg-[#101827] text-slate-400 hover:text-slate-200'
+                  className={`px-2 py-1 transition-colors ${i > 0 ? 'border-l border-line-700' : ''} ${
+                    mode === m ? 'text-phos-400 bg-ink-800' : 'text-paper-600 hover:text-paper-400'
                   }`}
                 >
                   {m}
@@ -434,3 +327,11 @@ export const SettingsPage: React.FC = () => {
     </div>
   );
 };
+
+const Diag: React.FC<{ label: string; value: string; caption: string }> = ({ label, value, caption }) => (
+  <div className="p-3 bg-ink-900 space-y-1">
+    <span className="text-[10px] text-phos-600 uppercase">{label}</span>
+    <div className="text-[13px] text-paper-100 truncate">{value}</div>
+    <span className="text-[10px] text-paper-600">{caption}</span>
+  </div>
+);
