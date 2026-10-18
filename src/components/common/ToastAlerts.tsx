@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNids } from '../../context/NidsContext';
-import { ThreatBadge } from './ThreatBadge';
 import { X, ExternalLink, ShieldAlert } from 'lucide-react';
 
 export const ToastAlerts: React.FC<{ onInvestigateLast: () => void }> = ({ onInvestigateLast }) => {
@@ -9,40 +8,45 @@ export const ToastAlerts: React.FC<{ onInvestigateLast: () => void }> = ({ onInv
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none">
+    <div
+      className="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"
+      role="status"
+      aria-live="polite"
+    >
       {toasts.map((toast) => {
+        const toneClass =
+          toast.severity === 'CRITICAL'
+            ? 'border-sev-critical/50 alert-glow-red'
+            : toast.severity === 'HIGH'
+            ? 'border-sev-high/50 alert-glow-orange'
+            : 'border-sev-low/40 alert-glow-blue';
+
+        const iconClass =
+          toast.severity === 'CRITICAL' ? 'text-sev-critical' : toast.severity === 'HIGH' ? 'text-sev-high' : 'text-sev-low';
+
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto p-4 rounded-xl border shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-300 transition-all ${
-              toast.severity === 'CRITICAL'
-                ? 'bg-[#180d12]/95 border-red-500/50 alert-glow-red'
-                : toast.severity === 'HIGH'
-                ? 'bg-[#18110c]/95 border-orange-500/50 alert-glow-orange'
-                : 'bg-[#0f172a]/95 border-blue-500/40 alert-glow-blue'
-            }`}
+            className={`pointer-events-auto p-3.5 bg-ink-800 border ${toneClass} transition-all`}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
-                <ShieldAlert className={`w-5 h-5 ${
-                  toast.severity === 'CRITICAL' ? 'text-red-400' : toast.severity === 'HIGH' ? 'text-orange-400' : 'text-blue-400'
-                }`} />
-                <span className="font-bold text-sm text-white">{toast.title}</span>
+                <ShieldAlert className={`w-4 h-4 ${iconClass}`} strokeWidth={1.75} />
+                <span className="text-[13px] text-paper-100">{toast.title}</span>
               </div>
               <button
                 onClick={() => dismissToast(toast.id)}
-                className="text-slate-400 hover:text-white p-1 rounded-md transition-colors"
+                className="text-paper-600 hover:text-paper-200 transition-colors"
+                aria-label="Dismiss notification"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-              {toast.message}
-            </p>
+            <p className="text-[12px] text-paper-400 mt-1.5 leading-relaxed">{toast.message}</p>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-700/50 flex items-center justify-between">
-              <span className="text-[10px] font-mono text-slate-400">{toast.time}</span>
+            <div className="mt-2.5 pt-2 border-t border-line-700 flex items-center justify-between">
+              <span className="text-[10px] font-mono text-paper-600">{toast.time}</span>
               <button
                 onClick={() => {
                   dismissToast(toast.id);
@@ -51,9 +55,9 @@ export const ToastAlerts: React.FC<{ onInvestigateLast: () => void }> = ({ onInv
                   }
                   onInvestigateLast();
                 }}
-                className="flex items-center gap-1 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                className="flex items-center gap-1 text-[12px] text-phos-400 hover:text-phos-300 transition-colors"
               >
-                <span>Investigate AI Factors</span>
+                <span>Investigate</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
             </div>

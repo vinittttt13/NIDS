@@ -1,82 +1,65 @@
 import React from 'react';
 import { useNids } from '../../context/NidsContext';
-import { Server, ArrowUp, ArrowDown, Shield } from 'lucide-react';
+import { Server, ArrowUp, ArrowDown } from 'lucide-react';
+import { TablePanel, tableClass, theadRowClass, thClass, tbodyClass, trClass, tdClass, StatusPill } from '../common/Table';
 
 export const TopTalkersTable: React.FC = () => {
   const { hosts } = useNids();
 
-  return (
-    <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl">
-      <div className="flex items-center justify-between pb-3 border-b border-[#182438]">
-        <div className="flex items-center gap-2">
-          <Server className="w-4 h-4 text-blue-400" />
-          <h3 className="font-bold text-sm text-white">Lab Hosts & Top Talkers</h3>
-        </div>
-        <span className="text-[11px] font-mono text-slate-400">192.168.100.0/24 Subnet</span>
-      </div>
+  const roleTone = (role: string) =>
+    role === 'ATTACKER' ? 'critical' : role === 'VICTIM' ? 'high' : role === 'SENSOR' ? 'low' : 'neutral';
 
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full text-left text-xs font-mono">
-          <thead>
-            <tr className="border-b border-[#1b283d] text-slate-400 uppercase text-[10px]">
-              <th className="pb-2 px-2">Host Node</th>
-              <th className="pb-2 px-2">Lab Role</th>
-              <th className="pb-2 px-2">Packets Sent</th>
-              <th className="pb-2 px-2">Packets Recv</th>
-              <th className="pb-2 px-2">Bandwidth</th>
-              <th className="pb-2 px-2">Threats</th>
-              <th className="pb-2 px-2">Status</th>
+  return (
+    <TablePanel title="Lab hosts & top talkers" icon={Server} meta="192.168.100.0/24 subnet">
+      <table className={`${tableClass} font-mono`}>
+        <thead>
+          <tr className={theadRowClass}>
+            <th className={thClass}>Host node</th>
+            <th className={thClass}>Lab role</th>
+            <th className={thClass}>Packets sent</th>
+            <th className={thClass}>Packets recv</th>
+            <th className={thClass}>Bandwidth</th>
+            <th className={thClass}>Threats</th>
+            <th className={thClass}>Status</th>
+          </tr>
+        </thead>
+        <tbody className={tbodyClass}>
+          {hosts.map((h) => (
+            <tr key={h.ip} className={trClass}>
+              <td className={tdClass}>
+                <div className="text-paper-100">{h.hostname}</div>
+                <div className="text-[11px] text-paper-600">{h.ip}</div>
+              </td>
+              <td className={tdClass}>
+                <StatusPill tone={roleTone(h.role)}>{h.role}</StatusPill>
+              </td>
+              <td className={`${tdClass} text-paper-300`}>
+                <span className="flex items-center gap-1">
+                  <ArrowUp className="w-3 h-3 text-paper-600" />
+                  {h.packetsSent.toLocaleString()}
+                </span>
+              </td>
+              <td className={`${tdClass} text-paper-300`}>
+                <span className="flex items-center gap-1">
+                  <ArrowDown className="w-3 h-3 text-paper-600" />
+                  {h.packetsReceived.toLocaleString()}
+                </span>
+              </td>
+              <td className={`${tdClass} text-paper-100`}>{h.bytesTotal}</td>
+              <td className={tdClass}>
+                <span className={h.threatsOriginated > 0 || h.threatsTargeted > 0 ? 'text-sev-critical' : 'text-paper-600'}>
+                  {h.threatsOriginated + h.threatsTargeted}
+                </span>
+              </td>
+              <td className={tdClass}>
+                <StatusPill tone={h.status === 'ACTIVE_ATTACK' ? 'critical' : h.status === 'UNDER_ATTACK' ? 'high' : 'ok'}>
+                  {h.status}
+                </StatusPill>
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-[#152033]">
-            {hosts.map((h) => (
-              <tr key={h.ip} className="hover:bg-[#121c2e] transition-colors">
-                <td className="py-2.5 px-2">
-                  <div className="font-bold text-white">{h.hostname}</div>
-                  <div className="text-[11px] text-slate-400">{h.ip}</div>
-                </td>
-                <td className="py-2.5 px-2">
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                    h.role === 'ATTACKER' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                    h.role === 'VICTIM' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                    h.role === 'SENSOR' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' :
-                    'bg-slate-800 text-slate-300'
-                  }`}>
-                    {h.role}
-                  </span>
-                </td>
-                <td className="py-2.5 px-2 text-slate-300">
-                  <span className="flex items-center gap-1">
-                    <ArrowUp className="w-3 h-3 text-blue-400" />
-                    {h.packetsSent.toLocaleString()}
-                  </span>
-                </td>
-                <td className="py-2.5 px-2 text-slate-300">
-                  <span className="flex items-center gap-1">
-                    <ArrowDown className="w-3 h-3 text-emerald-400" />
-                    {h.packetsReceived.toLocaleString()}
-                  </span>
-                </td>
-                <td className="py-2.5 px-2 text-white font-semibold">{h.bytesTotal}</td>
-                <td className="py-2.5 px-2">
-                  <span className={`font-bold ${h.threatsOriginated > 0 || h.threatsTargeted > 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                    {h.threatsOriginated + h.threatsTargeted}
-                  </span>
-                </td>
-                <td className="py-2.5 px-2">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                    h.status === 'ACTIVE_ATTACK' ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/30' :
-                    h.status === 'UNDER_ATTACK' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                    'bg-emerald-500/20 text-emerald-400'
-                  }`}>
-                    {h.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          ))}
+        </tbody>
+      </table>
+    </TablePanel>
   );
 };
