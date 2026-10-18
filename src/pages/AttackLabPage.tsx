@@ -29,29 +29,25 @@ export const AttackLabPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#1b273d]">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-line-700">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-white tracking-wide font-sans">
-              Attack Lab (PC 1 Controller)
-            </h1>
-            <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
-              <Lock className="w-3 h-3 text-amber-400" />
-              <span>AUTHORIZED LAB ENVIRONMENT • PRIVATE TARGET ONLY</span>
+            <h1 className="text-xl font-medium text-paper-100">Attack lab (PC 1 controller)</h1>
+            <span className="text-[11px] font-mono text-sev-high border border-sev-high/30 px-1.5 py-0.5 flex items-center gap-1.5">
+              <Lock className="w-3 h-3" strokeWidth={1.75} />
+              <span>AUTHORIZED LAB ENVIRONMENT · PRIVATE TARGET ONLY</span>
             </span>
           </div>
-          <p className="text-xs text-slate-300 mt-1">
-            Controlled attack simulation environment for authorized network-security testing over <span className="font-mono text-cyan-400">{activeTransport}</span>. All packet generation is rate-bounded and locked to private lab targets.
+          <p className="text-[13px] text-paper-400 mt-1 max-w-[70ch]">
+            Controlled attack simulation for authorized security testing over <span className="font-mono text-phos-400">{activeTransport}</span>. All packet generation is rate-bounded and locked to private lab targets.
           </p>
         </div>
 
         {activeAttack && (
-          <div className="flex items-center gap-2 text-xs font-mono">
-            <span className="px-3 py-1.5 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse font-bold flex items-center gap-1.5">
-              <ShieldAlert className="w-4 h-4 text-red-400" />
-              <span>TRANSMITTING: {activeAttack.scenarioId} [{activeAttack.intensity || 'MEDIUM'}]</span>
-            </span>
-          </div>
+          <span className="px-3 py-1.5 bg-ink-800 border border-sev-critical/40 text-sev-critical text-[12px] font-mono flex items-center gap-1.5">
+            <ShieldAlert className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span>TRANSMITTING: {activeAttack.scenarioId} [{activeAttack.intensity || 'MEDIUM'}]</span>
+          </span>
         )}
       </div>
 
@@ -61,27 +57,23 @@ export const AttackLabPage: React.FC = () => {
       {/* Attack Scenario Control Section */}
       <div>
         {/* Category Tabs & Filter */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 px-1">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <Crosshair className="w-4 h-4 text-red-400" />
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-              Controlled Lab Attack Scenarios
-            </h2>
+            <Crosshair className="w-3.5 h-3.5 text-phos-400" strokeWidth={1.75} />
+            <h2 className="text-[13px] text-paper-100">Controlled lab attack scenarios</h2>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-[#0e1626] p-1 rounded-xl border border-[#1b273d]">
-            {categories.map(cat => (
+          <div className="flex items-center text-[12px] font-mono">
+            {categories.map((cat, i) => (
               <button
                 key={cat.key}
                 onClick={() => setSelectedCategory(cat.key)}
-                className={`px-3 py-1 text-xs font-mono font-medium rounded-lg transition-all ${
-                  selectedCategory === cat.key
-                    ? 'bg-blue-600 text-white shadow-sm font-bold'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#152138]'
+                className={`px-2.5 py-1 transition-colors ${i > 0 ? 'border-l border-line-700' : ''} ${
+                  selectedCategory === cat.key ? 'text-phos-400 bg-ink-800' : 'text-paper-600 hover:text-paper-400'
                 }`}
               >
                 <span>{cat.label}</span>
-                <span className="ml-1.5 text-[10px] opacity-70">({cat.count})</span>
+                <span className="ml-1.5 opacity-70">({cat.count})</span>
               </button>
             ))}
           </div>
