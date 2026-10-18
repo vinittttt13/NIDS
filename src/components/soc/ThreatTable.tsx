@@ -103,7 +103,7 @@ export const ThreatTable: React.FC<ThreatTableProps> = ({
                         <Eye className="w-3.5 h-3.5" />
                       </button>
                       {!isResolved && (
-                        <button onClick={() => resolveThreat(threat.id)} className="hover:text-sev-clear transition-colors" title="Mark resolved">
+                        <button onClick={() => resolveThreat(threat.id)} className="hover:text-phos-400 transition-colors" title="Mark resolved">
                           <CheckCircle className="w-3.5 h-3.5" />
                         </button>
                       )}

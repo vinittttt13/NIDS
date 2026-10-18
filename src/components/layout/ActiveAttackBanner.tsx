@@ -13,14 +13,14 @@ export const ActiveAttackBanner: React.FC<{ onNavigateToAttackLab: () => void }>
   return (
     <div
       className={`w-full px-5 py-2.5 border-b flex flex-wrap items-center justify-between gap-4 bg-ink-900 ${
-        isRunning ? 'border-sev-critical/40' : 'border-sev-clear/40'
+        isRunning ? 'border-sev-critical/40' : 'border-phos-600/40'
       }`}
     >
       <div className="flex items-center gap-3">
         {isRunning ? (
           <Crosshair className="w-4 h-4 text-sev-critical" strokeWidth={1.75} />
         ) : (
-          <CheckCircle2 className="w-4 h-4 text-sev-clear" strokeWidth={1.75} />
+          <CheckCircle2 className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
         )}
 
         <div className="flex items-center gap-3 text-[13px]">

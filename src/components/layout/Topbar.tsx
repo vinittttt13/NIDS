@@ -170,7 +170,7 @@ const DiagField: React.FC<{ label: string; value: string; ok?: boolean; muted?: 
     <span
       className={
         ok === true
-          ? 'text-sev-clear'
+          ? 'text-phos-400'
           : ok === false
           ? 'text-sev-critical'
           : muted

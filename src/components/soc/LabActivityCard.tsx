@@ -35,8 +35,8 @@ export const LabActivityCard: React.FC = () => {
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 text-[12px] font-mono">
             <Field label="scenario" value={activity.scenario} />
             <Field label="intensity" value={activity.intensity} />
-            <Field label="source" value={activity.sourceIp} tone="critical" />
-            <Field label="target" value={activity.targetIp} tone="clear" />
+            <Field label="source" value={activity.sourceIp} />
+            <Field label="target" value={activity.targetIp} />
             <Field label="duration" value={`${activity.durationSeconds}s`} />
             <Field label="at" value={activity.timestamp} />
           </div>
@@ -80,11 +80,9 @@ export const LabActivityCard: React.FC = () => {
   );
 };
 
-const Field: React.FC<{ label: string; value: string; tone?: 'critical' | 'clear' }> = ({ label, value, tone }) => (
+const Field: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
     <div className="text-paper-600">{label}</div>
-    <div className={tone === 'critical' ? 'text-sev-critical' : tone === 'clear' ? 'text-sev-clear' : 'text-paper-100'}>
-      {value}
-    </div>
+    <div className="text-paper-100">{value}</div>
   </div>
 );

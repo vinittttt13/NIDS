@@ -28,7 +28,7 @@ export const AttackExecutionTimeline: React.FC = () => {
               <li key={event.id} className="pl-5 pb-5 last:pb-0 relative">
                 <span
                   className={`absolute -left-[3.5px] top-1 w-[6px] h-[6px] rounded-full ${
-                    event.stage === 'ALERT_GENERATED' ? 'bg-sev-critical' : 'bg-sev-clear'
+                    event.stage === 'ALERT_GENERATED' ? 'bg-sev-critical' : 'bg-phos-400'
                   }`}
                 />
                 <div className="flex items-baseline gap-2 flex-wrap">

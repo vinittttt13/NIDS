@@ -44,7 +44,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               : 'No detections this session. The lab is clear.'}
           </p>
           <div className="mt-2 flex items-baseline gap-3">
-            <span className={`text-[44px] leading-none font-mono font-medium ${hasThreats ? 'text-sev-critical' : 'text-sev-clear'}`}>
+            <span className={`text-[44px] leading-none font-mono font-medium ${hasThreats ? 'text-sev-critical' : 'text-phos-200'}`}>
               {telemetry.threatsDetectedCount}
             </span>
             <span className="text-[13px] text-paper-600">detections tracked</span>

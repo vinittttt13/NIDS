@@ -17,14 +17,14 @@ interface MetricCardProps {
 const TONE_TEXT: Record<NonNullable<MetricCardProps['tone']>, string> = {
   critical: 'text-sev-critical',
   high: 'text-sev-high',
-  clear: 'text-sev-clear',
+  clear: 'text-phos-400',
   neutral: 'text-paper-100',
 };
 
 const TONE_EDGE: Record<NonNullable<MetricCardProps['tone']>, string> = {
   critical: 'before:bg-sev-critical',
   high: 'before:bg-sev-high',
-  clear: 'before:bg-sev-clear',
+  clear: 'before:bg-phos-400',
   neutral: 'before:bg-transparent',
 };
 
@@ -65,7 +65,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             <span
               className={
                 trendDirection === 'up'
-                  ? 'text-sev-clear'
+                  ? 'text-phos-400'
                   : trendDirection === 'down'
                   ? 'text-sev-critical'
                   : 'text-paper-600'

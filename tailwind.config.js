@@ -8,40 +8,43 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Operations-console palette: a near-black/green graphite scale for
-        // structure, a severity spectrum reserved exclusively for actual
-        // threat/system state, and a separate neon-green accent reserved
-        // for brand/interactive state (active nav, primary actions, focus
-        // rings, live indicators) — never used to encode severity meaning.
+        // Phosphor-black structure. Near-black with a faint green cast so the
+        // whole surface reads as one material, not grey with green stuck on.
         ink: {
-          950: '#050805', // primary app background
-          900: '#080C09', // sidebar background
-          850: '#0A0F0B', // secondary background
-          800: '#0D130F', // card / panel surface
-          700: '#121A14', // elevated surface (popovers, modals, hovers)
+          950: '#050806', // page background
+          900: '#0A0F0C', // panel
+          850: '#0E1511', // nested panel / table header
+          800: '#131C16', // hover row
+          700: '#1A261E', // pressed / selected
         },
         line: {
-          700: '#1B2B20',
-          600: '#25392C',
-          500: '#33503F',
+          700: '#16221B', // hairline dividers
+          600: '#22332A', // panel borders
+          500: '#2F4639', // emphasised borders
         },
         paper: {
-          100: '#E8F5E9',
-          300: '#C3D6C6',
-          400: '#91A395',
-          600: '#5E7065',
+          100: '#E4F0E8', // primary text + all data values
+          300: '#A8BCAF', // secondary text
+          400: '#748A7C', // tertiary / placeholder
+          600: '#49594F', // disabled
         },
+        // Phosphor accent. Carries identity, active state, and "system healthy".
+        phos: {
+          200: '#A8F0C6', // peak emphasis, used sparingly
+          300: '#6EE7A8', // active nav, live indicators
+          400: '#34D178', // PRIMARY — focus rings, active borders, key accents
+          500: '#1FA862', // hover / pressed
+          600: '#14704A', // dim traces, idle sparklines
+          700: '#0D4530', // grid lines, inactive strokes
+          900: '#071A12', // accent wash backgrounds
+        },
+        // Severity is now WARM-ONLY. Green no longer means "clear" — the accent
+        // ramp carries that. This widens the gap between normal and alarm.
         sev: {
-          critical: '#FF4545',
-          high: '#FFB020',
-          medium: '#E3B341',
-          low: '#1F7A3F',
-          clear: '#00E676',
-        },
-        accent: {
-          DEFAULT: '#39FF14', // primary neon green — active nav, primary buttons, focus rings
-          secondary: '#00E676',
-          muted: '#1F7A3F',
+          critical: '#FF4D4D',
+          high: '#FF8F3F',
+          medium: '#F0C235',
+          low: '#5E89B5',
         },
       },
       fontFamily: {
@@ -49,10 +52,10 @@ export default {
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       boxShadow: {
-        // Restrained accent glow — reserved for a genuinely selected/active/
-        // focused element, never applied ambiently to whole panels.
-        'glow-accent': '0 0 0 1px rgba(57, 255, 20, 0.4), 0 0 12px -2px rgba(57, 255, 20, 0.35)',
-        'glow-critical': '0 0 0 1px rgba(255, 69, 69, 0.4), 0 0 12px -2px rgba(255, 69, 69, 0.3)',
+        // The ONE glow exception in the whole app — the live-connection
+        // status dot. No bloom anywhere else (panels, cards, text, buttons,
+        // borders, backgrounds).
+        live: '0 0 6px rgba(52, 209, 120, 0.5)',
       },
       keyframes: {
         flow: {

@@ -12,7 +12,7 @@ export const RiskGauge: React.FC<RiskGaugeProps> = ({ score, size = 'md', label 
     if (val >= 75) return 'text-sev-high stroke-sev-high';
     if (val >= 50) return 'text-sev-medium stroke-sev-medium';
     if (val >= 25) return 'text-sev-low stroke-sev-low';
-    return 'text-sev-clear stroke-sev-clear';
+    return 'text-phos-400 stroke-phos-400';
   };
 
   const circumference = 2 * Math.PI * 40;

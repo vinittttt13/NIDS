@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onSelectPage }) =
                 isActive ? 'text-paper-100 bg-ink-800' : 'text-paper-400 hover:text-paper-200'
               }`}
             >
-              {isActive && <span className="absolute inset-y-1 left-0 w-[2px] bg-paper-100" />}
+              {isActive && <span className="absolute inset-y-1 left-0 w-[2px] bg-phos-400" />}
               <span className="flex items-center gap-2.5">
                 <Icon className="w-[15px] h-[15px]" strokeWidth={1.75} />
                 <span>{item.label}</span>
@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onSelectPage }) =
         </div>
         <div className="flex items-center justify-between font-mono text-[12px]">
           <span className="text-paper-600">victim</span>
-          <span className="text-sev-clear">{getLabTargetIp()}</span>
+          <span className="text-paper-100">{getLabTargetIp()}</span>
         </div>
       </div>
     </aside>
