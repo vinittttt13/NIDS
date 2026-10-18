@@ -4,9 +4,15 @@
 
 @layer base {
   body {
-    background-color: #0A0C0F;
-    color: #EDEFF2;
+    background-color: #050805;
+    color: #E8F5E9;
     font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  /* Visible, on-brand focus ring everywhere — never suppressed. */
+  :focus-visible {
+    outline: 2px solid #39FF14;
+    outline-offset: 1px;
   }
 }
 
@@ -17,36 +23,44 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #12151A;
+  background: #080C09;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #242A32;
+  background: #1B2B20;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #333A44;
+  background: #25392C;
 }
 
 /* Faint structural grid, used behind topology/network diagrams only */
 .cyber-grid {
   background-size: 32px 32px;
   background-image:
-    linear-gradient(to right, rgba(36, 42, 50, 0.4) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(36, 42, 50, 0.4) 1px, transparent 1px);
+    linear-gradient(to right, rgba(27, 43, 32, 0.5) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 43, 32, 0.5) 1px, transparent 1px);
 }
 
 /* Severity-edge treatment: a left tick + faint wash, not a glowing box-shadow.
    Reserved strictly for the four real severity levels. */
 .alert-glow-red {
-  box-shadow: inset 2px 0 0 0 #E5484D;
+  box-shadow: inset 2px 0 0 0 #FF4545;
 }
 
 .alert-glow-orange {
-  box-shadow: inset 2px 0 0 0 #EF8D4C;
+  box-shadow: inset 2px 0 0 0 #FFB020;
 }
 
 .alert-glow-blue {
-  box-shadow: inset 2px 0 0 0 #5E89B5;
+  box-shadow: inset 2px 0 0 0 #1F7A3F;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
