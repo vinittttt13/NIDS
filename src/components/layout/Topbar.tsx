@@ -151,7 +151,18 @@ export const Topbar: React.FC = () => {
         <DiagField label="ai" value={connectionStatus.aiEngineMode} muted />
         <span className="ml-auto flex items-center gap-4">
           <DiagField label="api" value={connectionStatus.nidsApiConnected ? 'up' : 'down'} ok={connectionStatus.nidsApiConnected} />
-          <DiagField label="ws" value={connectionStatus.wsConnected ? 'up' : 'down'} ok={connectionStatus.wsConnected} />
+          <span className="flex items-center gap-1.5">
+            <span className="text-paper-600">ws </span>
+            <span
+              className={`w-[6px] h-[6px] rounded-full ${
+                connectionStatus.wsConnected ? 'bg-phos-400 shadow-live' : 'bg-sev-critical'
+              }`}
+              aria-hidden="true"
+            />
+            <span className={connectionStatus.wsConnected ? 'text-phos-400' : 'text-sev-critical'}>
+              {connectionStatus.wsConnected ? 'live' : 'down'}
+            </span>
+          </span>
           <span>{connectionStatus.latencyMs}ms</span>
         </span>
       </div>

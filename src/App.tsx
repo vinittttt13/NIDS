@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
   }, [clientRole, currentPage]);
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-[#f1f5f9] flex flex-col">
+    <div className="min-h-screen bg-ink-950 text-paper-100 flex flex-col">
       {/* Topbar */}
       <Topbar />
 
@@ -68,24 +68,20 @@ const AppContent: React.FC = () => {
 
         {/* Dynamic Page Content */}
         <main className="flex-1 p-6 overflow-y-auto max-w-[1600px] w-full mx-auto">
-          {/* Prominent Physical Perspective Watermark / Banner */}
+          {/* Role context strip — the Topbar diagnostics line already carries
+              role/client/server, so this stays a single quiet line rather
+              than a duplicate animated badge. */}
           {clientRole === 'ATTACK_LAB' && (
-            <div className="mb-4 p-3 rounded-xl bg-red-950/40 border border-red-500/50 flex items-center justify-between text-xs font-mono text-red-300 shadow-md">
-              <span className="font-bold flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-                <span>ROLE: PC 1 — ATTACK LAB • REMOTE CONTROLLER</span>
-              </span>
-              <span>Dispatches controlled test scenarios to PC 2 Backend</span>
+            <div className="mb-4 px-3 py-2 bg-ink-800 border-l-2 border-sev-critical flex items-center justify-between text-[12px] font-mono text-paper-300">
+              <span>ROLE: PC 1 — ATTACK LAB · REMOTE CONTROLLER</span>
+              <span className="text-paper-600">Dispatches controlled test scenarios to PC 2 backend</span>
             </div>
           )}
 
           {clientRole === 'NIDS_SOC' && (
-            <div className="mb-4 p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/50 flex items-center justify-between text-xs font-mono text-cyan-300 shadow-md">
-              <span className="font-bold flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                <span>ROLE: PC 2 — NIDS SOC • DETECTION AUTHORITY</span>
-              </span>
-              <span>Simulated Telemetry & Scripted Detection Stream (DEMO/HYBRID)</span>
+            <div className="mb-4 px-3 py-2 bg-ink-800 border-l-2 border-phos-600 flex items-center justify-between text-[12px] font-mono text-paper-300">
+              <span>ROLE: PC 2 — NIDS SOC · DETECTION AUTHORITY</span>
+              <span className="text-paper-600">Simulated telemetry &amp; scripted detection stream (DEMO/HYBRID)</span>
             </div>
           )}
 
