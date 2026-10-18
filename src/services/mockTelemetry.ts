@@ -648,30 +648,34 @@ export class MockTelemetryEngine {
   }
 
   public getProtocolDistribution(): ProtocolMetric[] {
+    // Protocol breakdown stays in phosphor tints — a rainbow categorical
+    // palette would be decorative. The exception: the protocol actually
+    // carrying an active flood is marked sev.critical, because that color
+    // genuinely means something here (it names the attack vector).
     if (this.activeAttack === 'DDOS_DISTRIBUTED_FLOOD') {
       return [
-        { name: 'TCP', percentage: 62.4, packetsPerSec: 58800, color: '#ef4444' },
-        { name: 'UDP', percentage: 28.6, packetsPerSec: 26900, color: '#f97316' },
-        { name: 'DNS', percentage: 6.2, packetsPerSec: 5800, color: '#06b6d4' },
-        { name: 'HTTP/S', percentage: 2.0, packetsPerSec: 1900, color: '#10b981' },
-        { name: 'ICMP', percentage: 0.8, packetsPerSec: 800, color: '#f59e0b' },
+        { name: 'TCP', percentage: 62.4, packetsPerSec: 58800, color: '#FF4D4D' },
+        { name: 'UDP', percentage: 28.6, packetsPerSec: 26900, color: '#1FA862' },
+        { name: 'DNS', percentage: 6.2, packetsPerSec: 5800, color: '#14704A' },
+        { name: 'HTTP/S', percentage: 2.0, packetsPerSec: 1900, color: '#A8F0C6' },
+        { name: 'ICMP', percentage: 0.8, packetsPerSec: 800, color: '#0D4530' },
       ];
     }
     if (this.activeAttack === 'DOS_SYN_FLOOD') {
       return [
-        { name: 'TCP', percentage: 88.5, packetsPerSec: 76400, color: '#ef4444' },
-        { name: 'UDP', percentage: 5.2, packetsPerSec: 4500, color: '#3b82f6' },
-        { name: 'DNS', percentage: 2.8, packetsPerSec: 2400, color: '#06b6d4' },
-        { name: 'HTTP/S', percentage: 2.5, packetsPerSec: 2100, color: '#10b981' },
-        { name: 'ICMP', percentage: 1.0, packetsPerSec: 1000, color: '#f59e0b' },
+        { name: 'TCP', percentage: 88.5, packetsPerSec: 76400, color: '#FF4D4D' },
+        { name: 'UDP', percentage: 5.2, packetsPerSec: 4500, color: '#1FA862' },
+        { name: 'DNS', percentage: 2.8, packetsPerSec: 2400, color: '#14704A' },
+        { name: 'HTTP/S', percentage: 2.5, packetsPerSec: 2100, color: '#A8F0C6' },
+        { name: 'ICMP', percentage: 1.0, packetsPerSec: 1000, color: '#0D4530' },
       ];
     }
     return [
-      { name: 'TCP', percentage: 58.4, packetsPerSec: 7300, color: '#3b82f6' },
-      { name: 'UDP', percentage: 22.1, packetsPerSec: 2750, color: '#06b6d4' },
-      { name: 'HTTP/S', percentage: 11.2, packetsPerSec: 1400, color: '#10b981' },
-      { name: 'DNS', percentage: 6.1, packetsPerSec: 760, color: '#8b5cf6' },
-      { name: 'ICMP', percentage: 2.2, packetsPerSec: 270, color: '#f59e0b' },
+      { name: 'TCP', percentage: 58.4, packetsPerSec: 7300, color: '#6EE7A8' },
+      { name: 'UDP', percentage: 22.1, packetsPerSec: 2750, color: '#34D178' },
+      { name: 'HTTP/S', percentage: 11.2, packetsPerSec: 1400, color: '#A8F0C6' },
+      { name: 'DNS', percentage: 6.1, packetsPerSec: 760, color: '#1FA862' },
+      { name: 'ICMP', percentage: 2.2, packetsPerSec: 270, color: '#14704A' },
     ];
   }
 

@@ -436,10 +436,10 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getProtocolDistribution(): Promise<ProtocolMetric[]> {
     return [
-      { name: 'TCP (HTTP/HTTPS/SSH)', percentage: 72, packetsPerSec: 8985, color: '#3b82f6' },
-      { name: 'UDP (DNS/Video)', percentage: 22, packetsPerSec: 2745, color: '#06b6d4' },
-      { name: 'ICMP', percentage: 4, packetsPerSec: 499, color: '#10b981' },
-      { name: 'Other', percentage: 2, packetsPerSec: 251, color: '#8b5cf6' },
+      { name: 'TCP (HTTP/HTTPS/SSH)', percentage: 72, packetsPerSec: 8985, color: '#6EE7A8' },
+      { name: 'UDP (DNS/Video)', percentage: 22, packetsPerSec: 2745, color: '#34D178' },
+      { name: 'ICMP', percentage: 4, packetsPerSec: 499, color: '#1FA862' },
+      { name: 'Other', percentage: 2, packetsPerSec: 251, color: '#14704A' },
     ];
   }
 

@@ -39,7 +39,7 @@ export const LiveTrafficChart: React.FC = () => {
         <div className="flex items-center gap-5">
           <div className="hidden sm:flex items-center gap-4 text-[12px] font-mono">
             <span className="flex items-center gap-1.5 text-paper-400">
-              <span className="w-2.5 h-[2px] bg-paper-300" />
+              <span className="w-2.5 h-[2px] bg-phos-400" />
               {latestPoint ? latestPoint.packetsPerSec.toLocaleString() : 0}
             </span>
             {activeAttack && (
@@ -76,25 +76,25 @@ export const LiveTrafficChart: React.FC = () => {
         <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
           <defs>
             <linearGradient id="baseAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#B7BEC7" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#B7BEC7" stopOpacity="0" />
+              <stop offset="0%" stopColor="#34D178" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#34D178" stopOpacity="0" />
             </linearGradient>
             <linearGradient id="critAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E5484D" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#E5484D" stopOpacity="0" />
+              <stop offset="0%" stopColor="#FF4D4D" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#FF4D4D" stopOpacity="0" />
             </linearGradient>
           </defs>
 
           <path d={areaD} fill="url(#baseAreaGrad)" />
           {activeAttack && <path d={suspAreaD} fill="url(#critAreaGrad)" />}
 
-          <path d={pathD} fill="none" stroke="#B7BEC7" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={pathD} fill="none" stroke="#34D178" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
 
           {activeAttack && (
             <path
               d={suspPathD}
               fill="none"
-              stroke="#E5484D"
+              stroke="#FF4D4D"
               strokeWidth="1.75"
               strokeDasharray="4 2"
               strokeLinecap="round"
@@ -106,7 +106,7 @@ export const LiveTrafficChart: React.FC = () => {
             const idx = trafficHistory.length - 1;
             const x = (idx / (trafficHistory.length - 1 || 1)) * chartWidth;
             const y = chartHeight - (pt.packetsPerSec / maxPackets) * (chartHeight - 20) - 10;
-            return <circle key={i} cx={x} cy={y} r={3} className="fill-paper-100" />;
+            return <circle key={i} cx={x} cy={y} r={3} className="fill-phos-400" />;
           })}
         </svg>
       </div>
