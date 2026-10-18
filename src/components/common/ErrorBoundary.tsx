@@ -32,19 +32,19 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render() {
     if (this.state.error) {
       return (
-        <div className="min-h-screen bg-[#080c14] text-[#f1f5f9] flex items-center justify-center p-6">
-          <div className="max-w-md w-full rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-center">
-            <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-            <h1 className="text-lg font-semibold text-white mb-1">Something went wrong</h1>
-            <p className="text-sm text-slate-400 mb-4">
+        <div className="min-h-screen bg-ink-950 text-paper-100 flex items-center justify-center p-6">
+          <div className="max-w-md w-full border border-sev-critical/40 bg-ink-800 p-6 text-center">
+            <AlertTriangle className="w-8 h-8 text-sev-critical mx-auto mb-3" strokeWidth={1.75} />
+            <h1 className="text-[15px] text-paper-100 mb-1">Something went wrong</h1>
+            <p className="text-[13px] text-paper-400 mb-4">
               A component failed to render. This has been logged to the console.
             </p>
-            <pre className="text-left text-[11px] text-red-300/80 bg-black/30 rounded-lg p-3 mb-4 overflow-auto max-h-32">
+            <pre className="text-left text-[11px] text-paper-300 bg-ink-900 border border-line-700 p-3 mb-4 overflow-auto max-h-32">
               {this.state.error.message}
             </pre>
             <button
               onClick={this.handleReset}
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
+              className="px-4 py-2 bg-phos-400 hover:bg-phos-500 text-ink-950 text-[13px] font-medium transition-colors"
             >
               Try again
             </button>

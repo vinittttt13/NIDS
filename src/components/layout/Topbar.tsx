@@ -89,7 +89,7 @@ export const Topbar: React.FC = () => {
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-3 w-96 bg-ink-850 border border-line-700 shadow-xl p-3 z-50">
+                <div className="absolute right-0 mt-3 w-96 bg-ink-850 border border-line-600 p-3 z-50">
                   <div className="flex items-center justify-between pb-2 border-b border-line-700 mb-2">
                     <span className="text-[12px] text-paper-400">Notifications</span>
                     {notifications.length > 0 && (

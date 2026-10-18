@@ -544,7 +544,7 @@ export const NidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const newTlEvent: TimelineEvent = {
             id: eventId || `tl-${Date.now()}`,
             stage: 'THREAT_DETECTED',
-            title: `🚨 Threat Detected: ${newAlert.attackType}`,
+            title: `Threat detected: ${newAlert.attackType}`,
             description: `Sensor flagged anomaly from ${newAlert.sourceIp} → ${newAlert.targetIp} (Risk: ${newAlert.riskScore}/100, Confidence: ${(newAlert.confidence * 100).toFixed(1)}%)`,
             timestamp: msg.timestamp || new Date().toLocaleTimeString(),
             elapsedMs: newAlert.detectionLatencyMs || 184,
@@ -570,7 +570,7 @@ export const NidsProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Trigger SOC Toast
           addToast(
-            `🚨 ${newAlert.severity} Detection: ${newAlert.attackType}`,
+            `${newAlert.severity} detection: ${newAlert.attackType}`,
             `PC 2 NIDS Sensor classified threat from ${newAlert.sourceIp} → ${newAlert.targetIp}`,
             newAlert.severity
           );
