@@ -2,25 +2,27 @@ import React from 'react';
 import { ThreatAlert } from '../../types/threat';
 import { ThreatBadge } from '../common/ThreatBadge';
 import { RiskGauge } from '../common/RiskGauge';
-import { 
-  X, 
-  ShieldAlert, 
-  BrainCircuit, 
-  Clock, 
-  Terminal, 
-  Cpu, 
-  CheckCircle2, 
-  Layers, 
-  Sparkles,
-  ArrowRight,
-  Download
-} from 'lucide-react';
+import { StatusPill } from '../common/Table';
+import { X, ShieldAlert, BrainCircuit, Terminal, CheckCircle2, Sparkles, Download } from 'lucide-react';
 import { useNids } from '../../context/NidsContext';
 
 interface ThreatDetailModalProps {
   threat: ThreatAlert | null;
   onClose: () => void;
 }
+
+const XAI_TONE: Record<string, 'critical' | 'high' | 'medium' | 'ok'> = {
+  EXCESSIVE: 'critical',
+  ELEVATED: 'high',
+  ABNORMAL: 'medium',
+};
+
+const XAI_BAR: Record<string, string> = {
+  critical: 'bg-sev-critical',
+  high: 'bg-sev-high',
+  medium: 'bg-sev-medium',
+  ok: 'bg-phos-400',
+};
 
 export const ThreatDetailModal: React.FC<ThreatDetailModalProps> = ({ threat, onClose }) => {
   const { resolveThreat } = useNids();
@@ -40,24 +42,29 @@ export const ThreatDetailModal: React.FC<ThreatDetailModalProps> = ({ threat, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#0b1220] border border-[#1e2d4a] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-950/90"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="threat-modal-title"
+    >
+      <div className="bg-ink-800 border border-line-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-[#182438] flex items-center justify-between bg-[#0e1626]">
+        <div className="p-5 border-b border-line-700 bg-ink-850 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
-              <ShieldAlert className="w-6 h-6" />
+            <div className="p-2.5 bg-sev-critical/10 border border-sev-critical/30 text-sev-critical">
+              <ShieldAlert className="w-5 h-5" strokeWidth={1.75} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-white tracking-wide font-sans">{threat.attackType}</h2>
+              <div className="flex items-center gap-2.5">
+                <h2 id="threat-modal-title" className="text-[16px] text-paper-100">{threat.attackType}</h2>
                 <ThreatBadge severity={threat.severity} />
-                <span className="text-xs font-mono text-slate-400 px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+                <span className="text-[11px] font-mono text-paper-600 border border-line-600 px-1.5 py-0.5">
                   {threat.id}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Observed by Port Mirror Sensor (SPAN-08) • Extracted {threat.packetCount.toLocaleString()} frames
+              <p className="text-[12px] text-paper-400 mt-0.5">
+                Scripted detection payload · {threat.packetCount.toLocaleString()} simulated frames
               </p>
             </div>
           </div>
@@ -65,8 +72,8 @@ export const ThreatDetailModal: React.FC<ThreatDetailModalProps> = ({ threat, on
           <div className="flex items-center gap-3">
             <button
               onClick={downloadReportJson}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono border border-slate-700 transition-colors"
-              title="Download Incident JSON"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-ink-900 hover:bg-ink-700 border border-line-600 text-paper-300 text-[12px] font-mono transition-colors"
+              title="Download incident JSON"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export IOC</span>
@@ -74,150 +81,94 @@ export const ThreatDetailModal: React.FC<ThreatDetailModalProps> = ({ threat, on
 
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-[#141f33] hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              className="p-2 text-paper-600 hover:text-paper-200 transition-colors"
+              aria-label="Close threat detail"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Modal Body (Scrollable) */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        <div className="p-6 overflow-y-auto space-y-5">
           {/* Top KPI Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Risk Score */}
-            <div className="md:col-span-1 bg-[#0e1626] border border-[#1a273d] rounded-xl p-4 flex flex-col items-center justify-center">
-              <RiskGauge score={threat.riskScore} label="Evaluated Risk" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-line-700">
+            <div className="md:col-span-1 bg-ink-850 p-4 flex flex-col items-center justify-center">
+              <RiskGauge score={threat.riskScore} label="Evaluated risk" />
             </div>
 
-            {/* AI Confidence & Metrics */}
-            <div className="md:col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[11px] font-mono uppercase text-slate-400">AI Confidence</span>
-                <span className="text-2xl font-extrabold font-mono text-blue-400">
-                  {(threat.confidence * 100).toFixed(1)}%
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">XGBoost v1.4 Softmax</span>
-              </div>
-
-              <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[11px] font-mono uppercase text-slate-400">Anomaly Score</span>
-                <span className="text-2xl font-extrabold font-mono text-amber-400">
-                  {threat.anomalyScore.toFixed(2)}
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">Isolation Forest Distance</span>
-              </div>
-
-              <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[11px] font-mono uppercase text-slate-400">Detection Latency</span>
-                <span className="text-2xl font-extrabold font-mono text-emerald-400">
-                  {threat.detectionLatencyMs} ms
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">End-to-End Pipeline</span>
-              </div>
-
-              <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[11px] font-mono uppercase text-slate-400">Source Host</span>
-                <span className="text-sm font-bold font-mono text-red-400 truncate">
-                  {threat.sourceIp}:{threat.sourcePort}
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">Attacker Lab Machine</span>
-              </div>
-
-              <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[11px] font-mono uppercase text-slate-400">Target Host</span>
-                <span className="text-sm font-bold font-mono text-emerald-400 truncate">
-                  {threat.targetIp}:{threat.targetPort}
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">Isolated Lab Target</span>
-              </div>
-
-              <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-3.5 flex flex-col justify-between">
-                <span className="text-[11px] font-mono uppercase text-slate-400">Protocol & Bytes</span>
-                <span className="text-sm font-bold font-mono text-white">
-                  {threat.protocol} • {(threat.byteCount / 1024).toFixed(1)} KB
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">{threat.packetCount} packets</span>
-              </div>
+            <div className="md:col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-px bg-line-700">
+              <Stat label="AI confidence" value={`${(threat.confidence * 100).toFixed(1)}%`} caption="XGBoost softmax" tone="phos" />
+              <Stat label="Anomaly score" value={threat.anomalyScore.toFixed(2)} caption="Isolation forest distance" tone="phos" />
+              <Stat label="Detection latency" value={`${threat.detectionLatencyMs} ms`} caption="End-to-end pipeline" tone="phos" />
+              <Stat label="Source host" value={`${threat.sourceIp}:${threat.sourcePort}`} caption="Attacker lab machine" tone="paper" />
+              <Stat label="Target host" value={`${threat.targetIp}:${threat.targetPort}`} caption="Isolated lab target" tone="paper" />
+              <Stat label="Protocol & bytes" value={`${threat.protocol} · ${(threat.byteCount / 1024).toFixed(1)} KB`} caption={`${threat.packetCount} packets`} tone="paper" />
             </div>
           </div>
 
-          {/* Explainable AI (XAI): WHY WAS THIS FLAGGED? */}
-          <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-5">
-            <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-[#182438]">
-              <BrainCircuit className="w-5 h-5 text-blue-400" />
+          {/* Explainable AI (XAI): why was this flagged */}
+          <div className="bg-ink-850 border border-line-700 p-5">
+            <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-line-700">
+              <BrainCircuit className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
               <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-                  Explainable AI (XAI) Attribution — Why Was This Flagged?
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Feature contributions to XGBoost classification decision vs benign baseline
+                <h3 className="text-[14px] text-paper-100">Why this was flagged</h3>
+                <p className="text-[12px] text-paper-600 mt-0.5">
+                  Feature contributions behind the classification decision, vs. benign baseline
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3 font-mono">
-              {threat.xaiFactors.map((factor, idx) => (
-                <div key={idx} className="p-3 rounded-lg bg-[#0a101c] border border-[#18253b]">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                      <span className="font-semibold text-slate-200">{factor.factor}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded uppercase font-bold ${
-                        factor.direction === 'EXCESSIVE' ? 'bg-red-500/20 text-red-400' :
-                        factor.direction === 'ELEVATED' ? 'bg-orange-500/20 text-orange-400' :
-                        factor.direction === 'ABNORMAL' ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-400'
-                      }`}>
-                        {factor.direction}
-                      </span>
+            <div className="space-y-2.5 font-mono">
+              {threat.xaiFactors.map((factor, idx) => {
+                const tone = XAI_TONE[factor.direction] ?? 'ok';
+                return (
+                  <div key={idx} className="p-3 bg-ink-900 border border-line-700">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-paper-100">{factor.factor}</span>
+                        <StatusPill tone={tone}>{factor.direction}</StatusPill>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-[11px]">
+                        <span className="text-paper-600">
+                          Baseline <strong className="text-paper-300">{factor.baselineValue}</strong>
+                        </span>
+                        <span className="text-paper-600">→</span>
+                        <span className="text-paper-600">
+                          Observed <strong className="text-paper-100">{factor.observedValue}</strong>
+                        </span>
+                        <span className="text-phos-400">+{factor.weight}% weight</span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-[11px]">
-                      <span className="text-slate-400">
-                        Baseline: <strong className="text-slate-300">{factor.baselineValue}</strong>
-                      </span>
-                      <span>→</span>
-                      <span className="text-red-400">
-                        Observed: <strong className="text-white">{factor.observedValue}</strong>
-                      </span>
-                      <span className="text-blue-400 font-bold">
-                        +{factor.weight}% Weight
-                      </span>
+                    <div className="mt-2 w-full bg-ink-700 h-[3px]">
+                      <div className={`h-full transition-all duration-500 ${XAI_BAR[tone]}`} style={{ width: `${factor.weight * 2}%` }} />
                     </div>
                   </div>
-
-                  {/* Horizontal weight bar */}
-                  <div className="mt-2 w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-red-500 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${factor.weight * 2}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          {/* Model Recommendation & Raw Packet Sample */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Raw Packet Trace */}
-            <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-4 font-mono">
-              <div className="flex items-center gap-2 mb-2 text-slate-300 text-xs font-semibold">
-                <Terminal className="w-4 h-4 text-emerald-400" />
-                <span>Sensor Raw Packet Sample (tcpdump)</span>
+          {/* Raw sample & remediation guidance */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-line-700">
+            <div className="bg-ink-850 p-4 font-mono">
+              <div className="flex items-center gap-2 mb-2 text-paper-300 text-[12px]">
+                <Terminal className="w-3.5 h-3.5 text-phos-400" strokeWidth={1.75} />
+                <span>Simulated raw packet sample</span>
               </div>
-              <div className="p-3 rounded bg-[#070b13] border border-[#162238] text-[11px] text-emerald-400 leading-relaxed overflow-x-auto">
+              <div className="p-3 bg-ink-900 border border-line-700 text-[11px] text-paper-100 leading-relaxed overflow-x-auto">
                 {threat.rawPcapSample || 'No raw PCAP buffer available'}
               </div>
             </div>
 
-            {/* SOC Mitigation Guidance */}
-            <div className="bg-[#0e1626] border border-[#1a273d] rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2 text-slate-300 text-xs font-semibold font-mono">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>AI Automated Remediation Guidance</span>
+            <div className="bg-ink-850 p-4">
+              <div className="flex items-center gap-2 mb-2 text-paper-300 text-[12px] font-mono">
+                <Sparkles className="w-3.5 h-3.5 text-phos-400" strokeWidth={1.75} />
+                <span>Automated remediation guidance</span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed p-3 rounded bg-[#070b13] border border-[#162238]">
+              <p className="text-[12px] text-paper-100 leading-relaxed p-3 bg-ink-900 border border-line-700">
                 {threat.modelRecommendation}
               </p>
             </div>
@@ -225,15 +176,15 @@ export const ThreatDetailModal: React.FC<ThreatDetailModalProps> = ({ threat, on
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="p-4 border-t border-[#182438] bg-[#0e1626] flex items-center justify-between">
-          <span className="text-xs font-mono text-slate-500">
-            Detected: {threat.timestamp} ({threat.isoTime})
+        <div className="p-4 border-t border-line-700 bg-ink-850 flex items-center justify-between">
+          <span className="text-[12px] font-mono text-paper-600">
+            Detected {threat.timestamp} ({threat.isoTime})
           </span>
 
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+              className="px-4 py-2 bg-ink-900 hover:bg-ink-700 border border-line-600 text-paper-300 text-[12px] transition-colors"
             >
               Close
             </button>
@@ -244,13 +195,13 @@ export const ThreatDetailModal: React.FC<ThreatDetailModalProps> = ({ threat, on
                   resolveThreat(threat.id);
                   onClose();
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium transition-all shadow-md"
+                className="flex items-center gap-1.5 px-4 py-2 bg-phos-400 hover:bg-phos-500 text-ink-950 text-[12px] font-medium transition-colors"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Mark Threat Resolved</span>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Mark resolved</span>
               </button>
             ) : (
-              <span className="text-xs font-mono text-emerald-400 flex items-center gap-1 px-3 py-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+              <span className="text-[12px] font-mono text-phos-400 flex items-center gap-1.5 px-3 py-1.5 bg-phos-900 border border-phos-700">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Resolved</span>
               </span>
@@ -261,3 +212,13 @@ export const ThreatDetailModal: React.FC<ThreatDetailModalProps> = ({ threat, on
     </div>
   );
 };
+
+const Stat: React.FC<{ label: string; value: string; caption: string; tone: 'phos' | 'paper' }> = ({ label, value, caption, tone }) => (
+  <div className="bg-ink-850 p-3.5 flex flex-col justify-between gap-1">
+    <span className="text-[10px] font-mono uppercase tracking-wide text-phos-600">{label}</span>
+    <span className={`text-[18px] font-mono font-medium truncate ${tone === 'phos' ? 'text-phos-400' : 'text-paper-100'}`}>
+      {value}
+    </span>
+    <span className="text-[10px] font-mono text-paper-600">{caption}</span>
+  </div>
+);
