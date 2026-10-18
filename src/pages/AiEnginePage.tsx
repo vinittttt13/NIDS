@@ -14,20 +14,14 @@ export const AiEnginePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#1b273d]">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-line-700">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-white tracking-wide font-sans">
-              AI Intrusion Detection Engine
-            </h1>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-              XGBOOST v1.4 + ISOLATION FOREST
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Supervised multi-class traffic classification, unsupervised outlier scoring, and explainable feature attribution
+          <h1 className="text-xl font-medium text-paper-100">AI intrusion detection engine</h1>
+          <p className="text-[13px] text-paper-400 mt-1 max-w-[70ch]">
+            Supervised multi-class traffic classification, unsupervised outlier scoring, and explainable feature attribution.
           </p>
         </div>
+        <span className="text-[12px] font-mono text-paper-600">XGBoost v1.4 + isolation forest</span>
       </div>
 
       {/* Model Health Overview */}

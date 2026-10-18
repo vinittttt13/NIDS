@@ -1,96 +1,71 @@
 import React from 'react';
 import { useNids } from '../../context/NidsContext';
-import { NetworkFeatureItem } from '../../types/ai';
-import { Table, ToggleLeft, ToggleRight, Check } from 'lucide-react';
+import { Table as TableIcon } from 'lucide-react';
+import { tableClass, theadRowClass, thClass, tbodyClass, trClass, tdClass, StatusPill } from '../common/Table';
 
 export const FeatureTable: React.FC = () => {
   const { features, featureSchema, setFeatureSchema } = useNids();
 
   return (
-    <div className="bg-[#0e1626] border border-[#1a273d] rounded-2xl p-5 shadow-xl">
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#182438]">
+    <div className="bg-ink-800 border border-line-700 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-line-700">
         <div className="flex items-center gap-2">
-          <Table className="w-5 h-5 text-cyan-400" />
+          <TableIcon className="w-4 h-4 text-phos-400" strokeWidth={1.75} />
           <div>
-            <h3 className="font-bold text-base text-white">Extracted Network Feature Vectors</h3>
-            <p className="text-xs text-slate-400">Dynamic parameters extracted by sensor per flow window</p>
+            <h3 className="text-[14px] text-paper-100">Extracted network feature vectors</h3>
+            <p className="text-[12px] text-paper-400">Simulated parameters generated per flow window</p>
           </div>
         </div>
 
         {/* Schema Switcher */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono text-slate-400">Feature Schema:</span>
-          <div className="flex items-center bg-[#090e1a] p-1 rounded-lg border border-[#1b273d] text-xs font-mono">
+        <div className="flex items-center text-[12px] font-mono">
+          {(['41_FEATURES', '78_FEATURES'] as const).map((schema, i) => (
             <button
-              onClick={() => setFeatureSchema('41_FEATURES')}
-              className={`px-3 py-1 rounded-md font-medium transition-all ${
-                featureSchema === '41_FEATURES'
-                  ? 'bg-blue-600 text-white font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+              key={schema}
+              onClick={() => setFeatureSchema(schema)}
+              className={`px-2.5 py-1 transition-colors ${i > 0 ? 'border-l border-line-700' : ''} ${
+                featureSchema === schema ? 'text-phos-400 bg-ink-900' : 'text-paper-600 hover:text-paper-400'
               }`}
             >
-              41-Feature (KDD Baseline)
+              {schema === '41_FEATURES' ? '41-feature (KDD baseline)' : '78-feature (CICIDS2017 advanced)'}
             </button>
-            <button
-              onClick={() => setFeatureSchema('78_FEATURES')}
-              className={`px-3 py-1 rounded-md font-medium transition-all ${
-                featureSchema === '78_FEATURES'
-                  ? 'bg-blue-600 text-white font-bold shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              78-Feature (CICIDS2017 Advanced)
-            </button>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Feature Table */}
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full text-left text-xs font-mono">
+        <table className={tableClass}>
           <thead>
-            <tr className="border-b border-[#1b283d] text-slate-400 uppercase text-[10px]">
-              <th className="pb-3 px-3">Feature Name</th>
-              <th className="pb-3 px-3">Category</th>
-              <th className="pb-3 px-3">Live Value</th>
-              <th className="pb-3 px-3">Baseline Normal</th>
-              <th className="pb-3 px-3">Importance</th>
-              <th className="pb-3 px-3">Description</th>
+            <tr className={theadRowClass}>
+              <th className={thClass}>Feature name</th>
+              <th className={thClass}>Category</th>
+              <th className={thClass}>Live value</th>
+              <th className={thClass}>Baseline normal</th>
+              <th className={thClass}>Importance</th>
+              <th className={thClass}>Description</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#152033]">
+          <tbody className={tbodyClass}>
             {features.map((feat) => (
-              <tr key={feat.id} className="hover:bg-[#121c2e] transition-colors">
-                <td className="py-3 px-3 font-semibold text-white">
-                  {feat.name}
+              <tr key={feat.id} className={trClass}>
+                <td className={`${tdClass} text-paper-100`}>{feat.name}</td>
+                <td className={tdClass}>
+                  <StatusPill tone="neutral">{feat.category}</StatusPill>
                 </td>
-                <td className="py-3 px-3 text-slate-400">
-                  <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px]">
-                    {feat.category}
-                  </span>
+                <td className={`${tdClass} text-paper-100 font-mono`}>
+                  {String(feat.value)} <span className="text-paper-600 text-[10px]">{feat.unit}</span>
                 </td>
-                <td className="py-3 px-3 text-blue-300 font-bold">
-                  {String(feat.value)} <span className="text-slate-400 text-[10px]">{feat.unit}</span>
-                </td>
-                <td className="py-3 px-3 text-slate-400">
-                  {feat.baseline}
-                </td>
-                <td className="py-3 px-3">
+                <td className={`${tdClass} text-paper-600 font-mono`}>{feat.baseline}</td>
+                <td className={tdClass}>
                   <div className="flex items-center gap-2">
-                    <div className="w-12 bg-[#080d17] rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-cyan-500 h-full rounded-full"
-                        style={{ width: `${feat.importance * 3}%` }}
-                      />
+                    <div className="w-12 bg-ink-900 h-[3px]">
+                      <div className="bg-phos-400 h-full" style={{ width: `${feat.importance * 3}%` }} />
                     </div>
-                    <span className="text-cyan-300 font-bold text-[11px]">
-                      {feat.importance}%
-                    </span>
+                    <span className="text-phos-400 font-mono text-[11px]">{feat.importance}%</span>
                   </div>
                 </td>
-                <td className="py-3 px-3 text-slate-400 font-sans text-[11px] max-w-xs truncate">
-                  {feat.description}
-                </td>
+                <td className={`${tdClass} text-paper-600 text-[11px] max-w-xs truncate`}>{feat.description}</td>
               </tr>
             ))}
           </tbody>
