@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, Crosshair, AlertTriangle, ArrowRight, CheckCircle2, Loader2, Square } from 'lucide-react';
+import { Crosshair, CheckCircle2, Square } from 'lucide-react';
 import { useNids } from '../../context/NidsContext';
 
 export const ActiveAttackBanner: React.FC<{ onNavigateToAttackLab: () => void }> = ({ onNavigateToAttackLab }) => {
@@ -11,56 +11,45 @@ export const ActiveAttackBanner: React.FC<{ onNavigateToAttackLab: () => void }>
   const isRunning = activeAttack.status === 'TRANSMITTING' || activeAttack.status === 'INITIALIZING';
 
   return (
-    <div className={`w-full px-4 py-3 border-b flex flex-wrap items-center justify-between gap-4 transition-all duration-300 ${
-      isRunning 
-        ? 'bg-gradient-to-r from-red-950/60 via-[#1c0d18] to-[#0d131f] border-red-500/40' 
-        : 'bg-gradient-to-r from-emerald-950/40 via-[#0d1c1a] to-[#0d131f] border-emerald-500/30'
-    }`}>
+    <div
+      className={`w-full px-5 py-2.5 border-b flex flex-wrap items-center justify-between gap-4 bg-ink-900 ${
+        isRunning ? 'border-sev-critical/40' : 'border-sev-clear/40'
+      }`}
+    >
       <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-lg flex items-center justify-center ${
-          isRunning ? 'bg-red-500/20 text-red-400 animate-pulse' : 'bg-emerald-500/20 text-emerald-400'
-        }`}>
-          {isRunning ? <Crosshair className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
-        </div>
+        {isRunning ? (
+          <Crosshair className="w-4 h-4 text-sev-critical" strokeWidth={1.75} />
+        ) : (
+          <CheckCircle2 className="w-4 h-4 text-sev-clear" strokeWidth={1.75} />
+        )}
 
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold uppercase px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
-              {isRunning ? 'SIMULATION IN PROGRESS' : 'SIMULATION COMPLETED'}
-            </span>
-            <span className="font-semibold text-white text-sm">
-              {currentScenario?.name || 'Active Attack'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-slate-300 mt-1 font-mono">
-            <span>Attacker: <strong className="text-red-400">{currentScenario?.sourceIp}</strong></span>
-            <span>→</span>
-            <span>Target: <strong className="text-emerald-400">{currentScenario?.targetIp}</strong></span>
-            <span className="text-slate-500">|</span>
-            <span>Elapsed: <strong>{activeAttack.elapsedSec}s</strong> / {activeAttack.durationSec}s</span>
-            <span className="text-slate-500">|</span>
-            <span>Packets Injected: <strong className="text-blue-400">{activeAttack.packetsSent.toLocaleString()}</strong></span>
-          </div>
+        <div className="flex items-center gap-3 text-[13px]">
+          <span className="text-paper-100">{currentScenario?.name || 'Active simulation'}</span>
+          <span className="text-paper-600">{isRunning ? 'running' : 'completed'}</span>
+          <span className="hidden sm:inline font-mono text-[12px] text-paper-400">
+            {currentScenario?.sourceIp} → {currentScenario?.targetIp}
+          </span>
+          <span className="hidden md:inline font-mono text-[12px] text-paper-600">
+            {activeAttack.elapsedSec}s / {activeAttack.durationSec}s
+          </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4">
         <button
           onClick={onNavigateToAttackLab}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium transition-all"
+          className="text-[12px] text-paper-400 hover:text-paper-200 transition-colors"
         >
-          <span>View Attack Pipeline</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          View pipeline
         </button>
 
         {isRunning && (
           <button
             onClick={stopAttackScenario}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-all shadow-md"
+            className="flex items-center gap-1.5 px-2.5 py-1 border border-sev-critical/50 text-sev-critical text-[12px] hover:bg-sev-critical/10 transition-colors"
           >
-            <Square className="w-3.5 h-3.5 fill-current" />
-            <span>Stop Test</span>
+            <Square className="w-3 h-3 fill-current" />
+            <span>Stop</span>
           </button>
         )}
       </div>

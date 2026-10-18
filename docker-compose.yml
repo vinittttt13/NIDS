@@ -1,0 +1,47 @@
+# One-laptop reproducible deployment (docs/GAPS_AND_FLAWS.md §7.2 — there was
+# previously no Docker/venv setup at all, despite the project's premise being
+# a two-machine deployment that needs matching environments).
+#
+# Usage:
+#   cp .env.example .env   # fill in NIDS_API_KEY etc.
+#   docker compose up --build
+#
+# This brings up ONE backend + ONE frontend container on the same machine —
+# for the real two-PC lab layout, run backend/Dockerfile on PC 2 and this
+# repo's Dockerfile on whichever PC(s) need the UI, pointed at each other via
+# VITE_NIDS_HOST / NIDS_CORS_ORIGINS as usual.
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - VITE_MODE=${VITE_MODE:-DEMO}
+      - LAB_TARGET_HOST=${LAB_TARGET_HOST:-127.0.0.1}
+      - LAB_SENSOR_HOST=${LAB_SENSOR_HOST:-127.0.0.1}
+      - LAB_ATTACKER_HOST=${LAB_ATTACKER_HOST:-127.0.0.1}
+      - LAB_SUBNET=${LAB_SUBNET:-127.0.0.1/32}
+      - NIDS_API_KEY=${NIDS_API_KEY:?Set NIDS_API_KEY in .env before running compose}
+      - NIDS_CORS_ORIGINS=${NIDS_CORS_ORIGINS:-http://localhost:5173}
+      - NIDS_BIND_HOST=0.0.0.0
+      - NIDS_API_PORT=8000
+      - NIDS_DB_PATH=/app/data/nids_data.db
+    volumes:
+      - nids_data:/app/data
+
+  frontend:
+    build: .
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_NIDS_HOST=${VITE_NIDS_HOST:-localhost}
+      - VITE_NIDS_PORT=8000
+      - VITE_NIDS_WS_PORT=8000
+      - VITE_CLIENT_ROLE=${VITE_CLIENT_ROLE:-UNIFIED}
+      - VITE_MODE=${VITE_MODE:-DEMO}
+      - VITE_API_KEY=${NIDS_API_KEY:?Set NIDS_API_KEY in .env before running compose}
+    depends_on:
+      - backend
+
+volumes:
+  nids_data:

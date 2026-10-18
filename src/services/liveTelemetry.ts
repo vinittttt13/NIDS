@@ -21,6 +21,7 @@ import { ThreatAlert } from '../types/threat';
 import { ModelMetricStats, FeatureSchemaType, NetworkFeatureItem, InferenceInspection } from '../types/ai';
 import { LabHostNode } from '../types/network';
 import { LAB_ATTACKER_IP, LAB_TARGET_IP, LAB_SENSOR_IP } from './attackService';
+import { apiFetch } from './apiClient';
 
 export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensorProvider, IAiInferenceProvider {
   private ws: WebSocket | null = null;
@@ -28,6 +29,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
   private eventSubscribers: ((msg: WebSocketMessage) => void)[] = [];
   private isConnected: boolean = false;
   private reconnectTimer: any = null;
+  private reconnectAttempts: number = 0;
   private currentSnapshot: LiveTelemetrySnapshot;
 
   // Deduplication & diagnostics tracking
@@ -86,6 +88,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
         console.log('[WS] connected');
         console.info(`[LiveTelemetryProvider] Authoritative WebSocket connected to ${this.wsUrl}`);
         this.isConnected = true;
+        this.reconnectAttempts = 0;
         if (this.reconnectTimer) {
           clearTimeout(this.reconnectTimer);
           this.reconnectTimer = null;
@@ -116,11 +119,18 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
   }
 
   private scheduleReconnect() {
+    // Exponential backoff with a cap, instead of hammering a down backend
+    // once every fixed 4s forever (see docs/GAPS_AND_FLAWS.md §5.7).
     if (!this.reconnectTimer) {
+      const MAX_DELAY_MS = 30000;
+      const baseDelay = Math.min(1000 * 2 ** this.reconnectAttempts, MAX_DELAY_MS);
+      const jitter = Math.random() * 500;
+      this.reconnectAttempts += 1;
+
       this.reconnectTimer = setTimeout(() => {
         this.reconnectTimer = null;
         this.connectWebSocket();
-      }, 4000);
+      }, baseDelay + jitter);
     }
   }
 
@@ -216,7 +226,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getLabStatus(): Promise<LabStatus> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/lab/status`);
+      const res = await apiFetch(`${this.restBaseUrl}/lab/status`);
       if (res.ok) {
         return await res.json();
       }
@@ -242,7 +252,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getNetworkInterfaces(): Promise<any> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/network/interfaces`);
+      const res = await apiFetch(`${this.restBaseUrl}/network/interfaces`);
       if (res.ok) {
         return await res.json();
       }
@@ -291,7 +301,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
     let interfaces: NetworkInterfaceInfo[] = [];
 
     try {
-      const res = await fetch(`${this.restBaseUrl}/status`, { signal: AbortSignal.timeout(3000) });
+      const res = await apiFetch(`${this.restBaseUrl}/status`, { signal: AbortSignal.timeout(3000) });
       if (res.ok) {
         apiReachable = true;
         details = await res.json();
@@ -343,7 +353,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getDiagnostics(): Promise<SystemDiagnosticsInfo> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/diagnostics`);
+      const res = await apiFetch(`${this.restBaseUrl}/diagnostics`);
       if (res.ok) {
         const data = await res.json();
         return {
@@ -380,7 +390,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async testSensor(): Promise<{ status: SensorStatusMode; message: string; droppedRate?: string }> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/sensor/status`);
+      const res = await apiFetch(`${this.restBaseUrl}/sensor/status`);
       if (res.ok) {
         return await res.json();
       }
@@ -394,7 +404,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async testAiEngine(): Promise<{ status: AiEngineStatusMode; message: string; avgInferenceMs?: number }> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/ai/status`);
+      const res = await apiFetch(`${this.restBaseUrl}/ai/status`);
       if (res.ok) {
         return await res.json();
       }
@@ -408,7 +418,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getHistory(duration: string = '5M'): Promise<TrafficDataPoint[]> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/traffic?duration=${duration}`);
+      const res = await apiFetch(`${this.restBaseUrl}/traffic?duration=${duration}`);
       if (res.ok) {
         return await res.json();
       }
@@ -435,7 +445,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getLabHistory(): Promise<any[]> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/lab/history`);
+      const res = await apiFetch(`${this.restBaseUrl}/lab/history`);
       if (res.ok) {
         const data = await res.json();
         return Array.isArray(data.attacks) ? data.attacks : [];
@@ -446,7 +456,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getNotifications(): Promise<any[]> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/notifications`);
+      const res = await apiFetch(`${this.restBaseUrl}/notifications`);
       if (res.ok) {
         const data = await res.json();
         return Array.isArray(data.notifications) ? data.notifications : [];
@@ -457,7 +467,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async markNotificationRead(notificationId: string): Promise<boolean> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/notifications/read/${notificationId}`, { method: 'POST' });
+      const res = await apiFetch(`${this.restBaseUrl}/notifications/read/${notificationId}`, { method: 'POST' });
       return res.ok;
     } catch {
       return false;
@@ -466,7 +476,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async markAllNotificationsRead(): Promise<boolean> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/notifications/read-all`, { method: 'POST' });
+      const res = await apiFetch(`${this.restBaseUrl}/notifications/read-all`, { method: 'POST' });
       return res.ok;
     } catch {
       return false;
@@ -475,7 +485,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getThreatFeed(): Promise<ThreatAlert[]> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/threats`);
+      const res = await apiFetch(`${this.restBaseUrl}/threats`);
       if (res.ok) {
         return await res.json();
       }
@@ -485,7 +495,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getActiveThreats(): Promise<ThreatAlert[]> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/threats/active`);
+      const res = await apiFetch(`${this.restBaseUrl}/threats/active`);
       if (res.ok) {
         return await res.json();
       }
@@ -495,7 +505,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async resolveThreat(threatId: string): Promise<boolean> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/threats/resolve/${threatId}`, { method: 'POST' });
+      const res = await apiFetch(`${this.restBaseUrl}/threats/resolve/${threatId}`, { method: 'POST' });
       return res.ok;
     } catch {
       return false;
@@ -504,7 +514,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async injectTestThreat(scenario: string = 'DoS SYN Flood'): Promise<any> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/threats/inject`, {
+      const res = await apiFetch(`${this.restBaseUrl}/threats/inject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -524,7 +534,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getModelStats(): Promise<ModelMetricStats> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/model`);
+      const res = await apiFetch(`${this.restBaseUrl}/model`);
       if (res.ok) {
         return await res.json();
       }
@@ -569,7 +579,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getFeatures(schema: FeatureSchemaType = '78_FEATURES'): Promise<NetworkFeatureItem[]> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/features?schema=${schema}`);
+      const res = await apiFetch(`${this.restBaseUrl}/features?schema=${schema}`);
       if (res.ok) {
         return await res.json();
       }
@@ -579,7 +589,7 @@ export class LiveTelemetryProvider implements ITelemetryProvider, INetworkSensor
 
   public async getLabNodes(): Promise<LabHostNode[]> {
     try {
-      const res = await fetch(`${this.restBaseUrl}/network`);
+      const res = await apiFetch(`${this.restBaseUrl}/network`);
       if (res.ok) {
         return await res.json();
       }

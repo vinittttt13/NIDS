@@ -1,6 +1,8 @@
 # AI-NIDS: Installation & Operation Manual
 ## Complete Setup, Deployment & Execution Guide
 
+> **Source-of-truth note**: this file is the source for `INSTALLATION_AND_RUN_GUIDE.docx`/`.pdf` (regenerate both with `python convert_docs.py` after editing this file — don't hand-edit the generated copies, they will drift). `README.md` has the shorter, currently-maintained version of these steps, including the new API-key/Docker setup.
+
 ---
 
 ## 1. System Requirements & Prerequisites

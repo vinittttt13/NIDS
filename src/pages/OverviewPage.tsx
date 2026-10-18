@@ -6,17 +6,7 @@ import { ThreatTable } from '../components/soc/ThreatTable';
 import { ProtocolPieChart } from '../components/soc/ProtocolPieChart';
 import { AttackExecutionTimeline } from '../components/attack/AttackExecutionTimeline';
 import { LabActivityCard } from '../components/soc/LabActivityCard';
-import { 
-  Activity, 
-  Layers, 
-  ShieldAlert, 
-  Flame, 
-  Target, 
-  Clock, 
-  Crosshair,
-  Radio,
-  Cpu
-} from 'lucide-react';
+import { Activity, Layers, ShieldAlert, Crosshair, Cpu } from 'lucide-react';
 import type { ThreatAlert } from '../types/threat';
 
 interface OverviewPageProps {
@@ -24,139 +14,96 @@ interface OverviewPageProps {
   onNavigateToAiEngine: () => void;
 }
 
-export const OverviewPage: React.FC<OverviewPageProps> = ({ 
-  onNavigateToAttackLab, 
-  onNavigateToAiEngine 
+export const OverviewPage: React.FC<OverviewPageProps> = ({
+  onNavigateToAttackLab,
 }) => {
-  const { 
-    telemetry, 
-    activeAttack, 
+  const {
+    telemetry,
     clientRole,
     connectionStatus,
-    setSelectedThreat,
     labAttacks,
     activeLabAttacksCount,
-    controlEventsCount
+    controlEventsCount,
+    setSelectedThreat,
   } = useNids();
 
   const handleInvestigate = (threat: ThreatAlert) => {
     setSelectedThreat(threat);
   };
 
+  const hasThreats = telemetry.threatsDetectedCount > 0;
+
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#1b273d]">
+    <div className="space-y-px bg-line-700">
+      {/* Posture hero */}
+      <div className="bg-ink-800 p-6 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-white tracking-wide font-sans">
-              Security Operations Center (SOC)
-            </h1>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              REAL-TIME DETECTION AUTHORITY
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            AI-Based Real-Time Network Intrusion Detection & Flow Ingestion System (PC 2 SOC Authority)
+          <p className="text-[13px] text-paper-400 max-w-[58ch]">
+            {hasThreats
+              ? `${telemetry.threatsDetectedCount} detection${telemetry.threatsDetectedCount === 1 ? '' : 's'} logged this session. Review the feed below.`
+              : 'No detections this session. The lab is clear.'}
           </p>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className={`text-[44px] leading-none font-mono font-medium ${hasThreats ? 'text-sev-critical' : 'text-sev-clear'}`}>
+              {telemetry.threatsDetectedCount}
+            </span>
+            <span className="text-[13px] text-paper-600">detections tracked</span>
+          </div>
         </div>
 
-        {/* Quick Launch Scenario Button (Only on PC1 or Unified, not on NIDS_SOC) */}
         {clientRole !== 'NIDS_SOC' && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onNavigateToAttackLab}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold font-mono transition-all shadow-lg hover:shadow-blue-500/25"
-            >
-              <Crosshair className="w-4 h-4" />
-              <span>Launch Attack Simulation</span>
-            </button>
-          </div>
+          <button
+            onClick={onNavigateToAttackLab}
+            className="flex items-center gap-2 px-3.5 py-2 border border-line-600 text-paper-200 text-[13px] hover:border-paper-400 hover:text-paper-100 transition-colors"
+          >
+            <Crosshair className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span>Launch a scenario</span>
+          </button>
         )}
       </div>
 
-      {/* KPI Cards Grid — Truthfully separating Real Security Detections vs Controlled Lab Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+      {/* Secondary metrics — dense strip, color reserved for real severity */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-line-700">
         <MetricCard
-          title="Threats Detected"
-          value={telemetry.threatsDetectedCount}
-          subtitle="Real AI Detections Only"
-          icon={ShieldAlert}
-          trend={telemetry.threatsDetectedCount > 0 ? 'Threats Found' : 'Clean'}
-          trendDirection={telemetry.threatsDetectedCount > 0 ? 'down' : 'up'}
-          color={telemetry.threatsDetectedCount > 0 ? 'red' : 'emerald'}
-        />
-
-        <MetricCard
-          title="Critical Threats"
+          title="Critical"
           value={telemetry.criticalThreatsCount}
-          subtitle="Real Sev-1 Alerts"
-          icon={Flame}
-          trend={telemetry.criticalThreatsCount > 0 ? 'Urgent' : 'Clear'}
-          trendDirection={telemetry.criticalThreatsCount > 0 ? 'down' : 'up'}
-          color="red"
-          badge="SEV-1"
+          icon={ShieldAlert}
+          tone={telemetry.criticalThreatsCount > 0 ? 'critical' : 'clear'}
         />
-
         <MetricCard
-          title="Lab Attacks"
+          title="Lab sessions"
           value={labAttacks.length}
-          subtitle="Controlled Simulations"
-          icon={Target}
-          trend="Lab History"
-          trendDirection="neutral"
-          color="blue"
-        />
-
-        <MetricCard
-          title="Active Lab Attacks"
-          value={activeLabAttacksCount}
-          subtitle="Currently Running"
+          subtitle="All time"
           icon={Crosshair}
-          trend={activeLabAttacksCount > 0 ? 'Active Test' : 'Idle'}
-          trendDirection={activeLabAttacksCount > 0 ? 'up' : 'neutral'}
-          color={activeLabAttacksCount > 0 ? 'amber' : 'cyan'}
+          tone="neutral"
         />
-
         <MetricCard
-          title="Control Events"
-          value={controlEventsCount}
-          subtitle="WebSocket C2 Signals"
+          title="Running now"
+          value={activeLabAttacksCount}
           icon={Activity}
-          trend="Start / Stop"
-          trendDirection="neutral"
-          color="purple"
+          tone={activeLabAttacksCount > 0 ? 'high' : 'neutral'}
         />
-
         <MetricCard
-          title="AI / Sensor Status"
+          title="Control signals"
+          value={controlEventsCount}
+          subtitle="Start / stop"
+          icon={Layers}
+          tone="neutral"
+        />
+        <MetricCard
+          title="Engine mode"
           value={connectionStatus.aiEngineMode}
           subtitle={`Sensor: ${connectionStatus.sensorMode}`}
           icon={Cpu}
-          trend="Simulated Pipeline"
-          trendDirection="neutral"
-          color="cyan"
+          tone="neutral"
         />
       </div>
 
-      {/* Sensor & AI Transparency Notice */}
-      <div className="px-4 py-2 rounded-xl bg-[#080d17] border border-[#162238] flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-slate-400">
-        <div className="flex items-center gap-2">
-          <span className="text-amber-400">⚡</span>
-          <span><strong>Telemetry Status:</strong> AI Mode is <span className="text-cyan-300 font-bold">{connectionStatus.aiEngineMode}</span> • Sensor is <span className="text-amber-300 font-bold">{connectionStatus.sensorMode}</span>. Lab C2 events are tracked separately from live threat detections.</span>
-        </div>
-        <div className="text-[11px] text-slate-500">
-          PC 1 Controller: 10.64.157.140 → PC 2 NIDS Server: 10.64.157.145
-        </div>
-      </div>
-
-      {/* Live Lab Activity Feed & Permanent Attack History Card */}
       <div>
         <LabActivityCard />
       </div>
 
-      {/* Main Charts & Visualization Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-line-700">
         <div className="lg:col-span-2">
           <LiveTrafficChart />
         </div>
@@ -165,14 +112,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
       </div>
 
-      {/* Real-Time Detection & Event Timeline */}
       <div>
         <AttackExecutionTimeline />
       </div>
 
-      {/* Live Threat Feed Table */}
       <div>
-        <ThreatTable onInvestigate={handleInvestigate} maxRows={8} title="Recent Security Detections & AI Classifications" />
+        <ThreatTable onInvestigate={handleInvestigate} maxRows={8} title="Recent detections" />
       </div>
     </div>
   );

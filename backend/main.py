@@ -28,41 +28,15 @@ import socket
 import time
 import uuid
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Literal, Optional, Dict, Any
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("AI-NIDS-API")
-
-app = FastAPI(
-    title="AI-NIDS Backend API",
-    description="Authoritative Network Intrusion Detection & Controlled Attack Simulation Engine",
-    version="3.0.0",
-)
-
-# Enable CORS for isolated LAN / Wi-Fi deployment
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Load .env variables if present
-env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
-if os.path.exists(env_file):
+# Load .env variables BEFORE importing sibling modules that read os.environ
+# (security.py / storage.py), so NIDS_API_KEY / NIDS_DB_PATH / etc. are
+# available no matter the import order.
+_env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+if os.path.exists(_env_file):
     try:
-        with open(env_file, "r") as f:
+        with open(_env_file, "r") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
@@ -70,8 +44,49 @@ if os.path.exists(env_file):
                     k, v = k.strip(), v.strip()
                     if k and k not in os.environ:
                         os.environ[k] = v
-    except Exception as e:
-        logger.warning(f"Could not load .env: {e}")
+    except Exception:
+        pass  # logger isn't configured yet; failure here just means defaults are used
+
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
+import storage
+from security import enforce_rate_limit, require_api_key
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("AI-NIDS-API")
+
+app = FastAPI(
+    title="AI-NIDS Backend API",
+    description=(
+        "Controlled Attack-Simulation & SOC-Dashboard Engine for the AI-NIDS lab project. "
+        "DEMO/HYBRID modes generate pre-scripted detection events for demonstration purposes; "
+        "there is no trained ML model or live packet-capture sensor behind this API (see "
+        "docs/GAPS_AND_FLAWS.md). LIVE mode intentionally reports NOT_CONFIGURED until a real "
+        "sensor/classifier is wired in."
+    ),
+    version="3.1.0",
+)
+
+# CORS: restrict to known-good origins instead of allowing "*" (which is also
+# unsafe to combine with allow_credentials=True). Configure extra origins via
+# NIDS_CORS_ORIGINS="http://host1:5173,http://host2:5173" in the environment.
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173"
+_cors_origins = [o.strip() for o in os.getenv("NIDS_CORS_ORIGINS", _default_origins).split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-API-Key"],
+)
 
 # Lab Configuration Constants & Dynamic Defaults
 LAB_ATTACKER_IP = os.getenv("LAB_ATTACKER_HOST") or os.getenv("VITE_ATTACKER_HOST") or "10.64.157.140"
@@ -79,13 +94,35 @@ LAB_TARGET_IP = os.getenv("LAB_TARGET_HOST") or os.getenv("VITE_LAB_TARGET_HOST"
 LAB_SENSOR_IP = os.getenv("LAB_SENSOR_HOST") or os.getenv("VITE_NIDS_HOST") or "10.64.157.145"
 LAB_SUBNET = os.getenv("LAB_SUBNET") or "10.64.157.0/24"
 
-# DDoS Lab Cluster IP pool
+# DDoS Lab Cluster IP pool (display-only labels, not real routable addresses)
 LAB_DDOS_SOURCES = [
-    LAB_ATTACKER_IP,
-    f"{LAB_ATTACKER_IP}.1",
-    f"{LAB_ATTACKER_IP}.2",
-    f"{LAB_ATTACKER_IP}.3"
+    f"{LAB_ATTACKER_IP} (PC1 Attacker)",
+    f"{LAB_ATTACKER_IP} (Lab Bot 01, simulated)",
+    f"{LAB_ATTACKER_IP} (Lab Bot 02, simulated)",
+    f"{LAB_ATTACKER_IP} (Lab Bot 03, simulated)",
 ]
+
+# The 7 controlled scenarios the Attack Lab UI can launch (must mirror
+# src/types/attack.ts AttackTypeId). Validated at the API boundary via
+# pydantic Literal types instead of accepting arbitrary free-text scenarios.
+AttackScenarioId = Literal[
+    "PORT_SCAN",
+    "BRUTE_FORCE",
+    "DOS_SYN_FLOOD",
+    "DDOS_DISTRIBUTED_FLOOD",
+    "VOLUMETRIC_TRAFFIC_FLOOD",
+    "DNS_ANOMALY",
+    "SUSPICIOUS_FLOW",
+]
+
+# Guards EventStore / LabAttackStore / NotificationStore mutations so two
+# concurrent requests (e.g. two operators resolving/stopping at once) can't
+# interleave a read-modify-write and corrupt the in-memory + on-disk state.
+store_lock = asyncio.Lock()
+
+# Tracks the background "simulated packet counter" task per attack_id so it
+# can be cancelled cleanly if the attack is stopped early.
+_packet_counter_tasks: Dict[str, asyncio.Task] = {}
 
 # State Tracking
 class LabState:
@@ -127,11 +164,20 @@ class EventStore:
         self.last_event_type: Optional[str] = None
         self.last_event_time: Optional[str] = None
 
+    def load_from_disk(self) -> None:
+        self.events = storage.load_events(500)
+        self.threats = storage.load_threats(200)
+        if self.events:
+            self.last_event_id = self.events[0].get("event_id")
+            self.last_event_type = self.events[0].get("event_type")
+            self.last_event_time = self.events[0].get("timestamp")
+
     def add_event(self, event_type: str, data: Dict[str, Any], source: str = "NIDS_BACKEND") -> Dict[str, Any]:
         event_id = f"evt_{uuid.uuid4().hex[:12]}"
         now_str = datetime.now().strftime("%H:%M:%S")
+        now_ts = time.time()
         iso_str = datetime.now().isoformat()
-        
+
         event_obj = {
             "event_id": event_id,
             "event_type": event_type,
@@ -140,13 +186,15 @@ class EventStore:
             "iso_time": iso_str,
             "source": source,
             "mode": state.mode,
-            "data": data
+            "data": data,
+            "_ts": now_ts,
         }
-        
+
         self.events.insert(0, event_obj)
         if len(self.events) > 500:
             self.events.pop()
-            
+        storage.save_event(event_obj)
+
         self.last_event_id = event_id
         self.last_event_type = event_type
         self.last_event_time = now_str
@@ -161,12 +209,14 @@ class EventStore:
             threat["isoTime"] = datetime.now().isoformat()
         if "status" not in threat:
             threat["status"] = "ACTIVE"
-            
+        threat["_ts"] = time.time()
+
         # Prepend to threats list (LIFO)
         self.threats.insert(0, threat)
         if len(self.threats) > 200:
             self.threats.pop()
-            
+        storage.save_threat(threat)
+
         event_payload = self.add_event("THREAT_DETECTED", threat)
         return event_payload
 
@@ -176,10 +226,29 @@ class EventStore:
             if t.get("id") == threat_id:
                 t["status"] = "RESOLVED"
                 t["resolvedAt"] = datetime.now().strftime("%H:%M:%S")
+                t["_ts"] = time.time()
+                storage.save_threat(t)
                 found = True
         if found:
             self.add_event("THREAT_RESOLVED", {"threatId": threat_id})
         return found
+
+    def add_raw_event(self, event_obj: Dict[str, Any]) -> Dict[str, Any]:
+        """Like add_event, but for pre-built event dicts (ATTACK_STARTED/STOPPED
+        control events) that carry their own event_id/event_type. Ensures these
+        go through the same cap + persistence path as everything else instead
+        of being pushed onto event_store.events directly (previously a bug:
+        those control events were never written to storage.py at all)."""
+        event_obj.setdefault("_ts", time.time())
+        self.events.insert(0, event_obj)
+        if len(self.events) > 500:
+            self.events.pop()
+        storage.save_event(event_obj)
+
+        self.last_event_id = event_obj.get("event_id")
+        self.last_event_type = event_obj.get("event_type") or event_obj.get("type")
+        self.last_event_time = event_obj.get("timestamp")
+        return event_obj
 
 event_store = EventStore()
 
@@ -188,6 +257,11 @@ class LabAttackStore:
     def __init__(self):
         self.attacks: List[Dict[str, Any]] = []
         self.active_attack_id: Optional[str] = None
+
+    def load_from_disk(self) -> None:
+        self.attacks = storage.load_attacks(50)
+        active = next((a for a in self.attacks if a.get("status") == "ACTIVE"), None)
+        self.active_attack_id = active["attack_id"] if active else None
 
     def start_attack(self, scenario: str, intensity: str, source_ip: str, target_ip: str, duration_sec: int) -> Dict[str, Any]:
         attack_id = f"lab_attack_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:4]}"
@@ -204,22 +278,41 @@ class LabAttackStore:
             "stopped_at": None,
             "duration_seconds": duration_sec,
             "status": "ACTIVE",
-            "iso_time": iso_str
+            "iso_time": iso_str,
+            "_ts": time.time(),
         }
         self.attacks.insert(0, attack_record)
         if len(self.attacks) > 50:
             self.attacks.pop()
+        storage.save_attack(attack_record)
         self.active_attack_id = attack_id
         return attack_record
 
     def complete_attack(self, attack_id: Optional[str] = None, scenario: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        target_id = attack_id or self.active_attack_id
+        # Prefer an exact attack_id match; only fall back to "most recent ACTIVE
+        # attack of this scenario" when no attack_id was supplied, so two
+        # overlapping attacks of the same scenario can't complete each other.
         now_str = datetime.now().strftime("%H:%M:%S")
 
+        if attack_id:
+            for att in self.attacks:
+                if att["attack_id"] == attack_id:
+                    att["status"] = "COMPLETED"
+                    att["stopped_at"] = now_str
+                    att["_ts"] = time.time()
+                    storage.save_attack(att)
+                    if self.active_attack_id == att["attack_id"]:
+                        self.active_attack_id = None
+                    return att
+            return None
+
+        target_id = self.active_attack_id
         for att in self.attacks:
             if (target_id and att["attack_id"] == target_id) or (scenario and att["scenario"] == scenario and att["status"] == "ACTIVE"):
                 att["status"] = "COMPLETED"
                 att["stopped_at"] = now_str
+                att["_ts"] = time.time()
+                storage.save_attack(att)
                 if self.active_attack_id == att["attack_id"]:
                     self.active_attack_id = None
                 return att
@@ -234,6 +327,9 @@ lab_attack_store = LabAttackStore()
 class NotificationStore:
     def __init__(self):
         self.notifications: List[Dict[str, Any]] = []
+
+    def load_from_disk(self) -> None:
+        self.notifications = storage.load_notifications(100)
 
     def add_notification(self, notif_type: str, title: str, message: str, severity: str = "INFO", attack_id: Optional[str] = None, event_id: Optional[str] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         notif_id = f"notif_{uuid.uuid4().hex[:12]}"
@@ -251,17 +347,20 @@ class NotificationStore:
             "timestamp": now_str,
             "iso_time": iso_str,
             "read": False,
-            "data": data or {}
+            "data": data or {},
+            "_ts": time.time(),
         }
         self.notifications.insert(0, notif)
         if len(self.notifications) > 100:
             self.notifications.pop()
+        storage.save_notification(notif)
         return notif
 
     def mark_read(self, notification_id: str) -> bool:
         for n in self.notifications:
             if n["notification_id"] == notification_id:
                 n["read"] = True
+                storage.save_notification(n)
                 return True
         return False
 
@@ -270,6 +369,7 @@ class NotificationStore:
         for n in self.notifications:
             if not n["read"]:
                 n["read"] = True
+                storage.save_notification(n)
                 count += 1
         return count
 
@@ -278,8 +378,16 @@ class NotificationStore:
 
 notification_store = NotificationStore()
 
-# Seed baseline demo threats ONLY if running in DEMO mode
-if state.mode == "DEMO":
+# Persistence: load any state that survived a previous process (see storage.py
+# / docs/GAPS_AND_FLAWS.md §4.1 — state used to be wiped on every restart).
+storage.init_db()
+event_store.load_from_disk()
+lab_attack_store.load_from_disk()
+notification_store.load_from_disk()
+
+# Seed baseline demo threats ONLY on a fresh DEMO-mode database (guarded so a
+# restart doesn't keep re-inserting duplicate seed threats on top of persisted ones)
+if state.mode == "DEMO" and not event_store.threats:
     demo_initial_threats = [
         {
             "id": "ALT-9481",
@@ -326,21 +434,22 @@ if state.mode == "DEMO":
         }
     ]
     for t in demo_initial_threats:
+        t["simulated"] = True
         event_store.add_threat(t)
 
 # Pydantic Schemas
 class StartAttackRequest(BaseModel):
-    scenario: str
+    scenario: AttackScenarioId
     targetIp: Optional[str] = None
     target_ip: Optional[str] = None
     sourceIp: Optional[str] = None
     source_ip: Optional[str] = None
     controller_ip: Optional[str] = None
-    intensity: Optional[str] = "MEDIUM"
-    duration_seconds: Optional[int] = None
+    intensity: Optional[Literal["LOW", "MEDIUM", "HIGH"]] = "MEDIUM"
+    duration_seconds: Optional[int] = Field(default=None, ge=1, le=120)
 
 class StopAttackRequest(BaseModel):
-    scenario: Optional[str] = None
+    scenario: Optional[AttackScenarioId] = None
     attack_id: Optional[str] = None
     targetIp: Optional[str] = None
     target_ip: Optional[str] = None
@@ -353,15 +462,15 @@ class ResolveThreatRequest(BaseModel):
     threatId: str
 
 class InjectThreatRequest(BaseModel):
-    attackType: str
-    category: Optional[str] = "Network Availability"
-    severity: Optional[str] = "HIGH"
+    attackType: str = Field(..., min_length=1, max_length=80)
+    category: Optional[str] = Field(default="Network Availability", max_length=80)
+    severity: Optional[Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]] = "HIGH"
     sourceIp: Optional[str] = LAB_ATTACKER_IP
     targetIp: Optional[str] = LAB_TARGET_IP
-    confidence: Optional[float] = 0.97
-    riskScore: Optional[int] = 92
-    anomalyScore: Optional[float] = 0.91
-    rawPcapSample: Optional[str] = None
+    confidence: Optional[float] = Field(default=0.97, ge=0.0, le=1.0)
+    riskScore: Optional[int] = Field(default=92, ge=0, le=100)
+    anomalyScore: Optional[float] = Field(default=0.91, ge=0.0, le=1.0)
+    rawPcapSample: Optional[str] = Field(default=None, max_length=300)
 
 class LabStatusResponse(BaseModel):
     connected: bool
@@ -378,6 +487,7 @@ class LabStatusResponse(BaseModel):
     status: str
     intensity: str
     packetsSent: int
+    packetsSimulated: bool
     elapsedSec: int
 
 class NetworkTestRequest(BaseModel):
@@ -473,14 +583,25 @@ def get_local_interfaces():
                 "isPrimary": (ip == primary_ip) if (ip and primary_ip) else False
             })
     else:
+        # Honest-degraded fallback: `psutil` is required to actually enumerate
+        # interfaces. Without it we report a single DEGRADED entry rather than
+        # fabricating a fake "Connected" Wi-Fi + Ethernet pair (see
+        # docs/GAPS_AND_FLAWS.md §7.4).
         if not primary_ip:
             primary_ip = "127.0.0.1"
 
         interfaces = [
-            {"name": "Wi-Fi Adapter", "ip": primary_ip, "type": "Wi-Fi", "status": "Connected", "isUp": True, "isPrimary": True},
-            {"name": "Ethernet Adapter", "ip": "Not connected", "type": "Ethernet", "status": "Disconnected", "isUp": False, "isPrimary": False}
+            {
+                "name": "psutil not installed",
+                "ip": primary_ip,
+                "type": "Unknown",
+                "status": "DEGRADED_NO_PSUTIL",
+                "isUp": False,
+                "isPrimary": True,
+            }
         ]
-        has_wifi = True
+        has_wifi = False
+        has_physical_ethernet = False
 
     # 2. Determine active transport based on routing & mode override
     if state.transport_mode == "ETHERNET" and has_physical_ethernet:
@@ -549,8 +670,42 @@ async def get_lab_status():
         status=state.attack_status,
         intensity=state.attack_intensity,
         packetsSent=state.packets_sent,
+        packetsSimulated=state.mode in ("DEMO", "HYBRID"),
         elapsedSec=elapsed
     )
+
+def scenario_packet_rate(scenario: str, intensity: str) -> int:
+    """Approximate simulated packets/sec used to animate the packet counter
+    while a DEMO/HYBRID attack is 'running'. Purely cosmetic — see
+    docs/GAPS_AND_FLAWS.md §2.2: there is no real packet capture behind this."""
+    base = {
+        "DDOS_DISTRIBUTED_FLOOD": 142800,
+        "DOS_SYN_FLOOD": 78000,
+        "VOLUMETRIC_TRAFFIC_FLOOD": 96000,
+    }.get(scenario, 28600)
+    multiplier = {"LOW": 0.6, "MEDIUM": 1.0, "HIGH": 1.3}.get(intensity, 1.0)
+    return int(base * multiplier)
+
+
+async def simulate_packet_counter(attack_id: str, scenario: str, intensity: str):
+    """Increments state.packets_sent once/sec while this attack is the active
+    one, so the UI's 'packets sent' figure isn't permanently stuck at 0
+    (previously a dead field — see docs/GAPS_AND_FLAWS.md §3.2). Only ever
+    runs in DEMO/HYBRID mode; LIVE mode has no simulated traffic at all."""
+    rate = scenario_packet_rate(scenario, intensity)
+    try:
+        while lab_attack_store.active_attack_id == attack_id and state.attack_status == "running":
+            await asyncio.sleep(1)
+            state.packets_sent += rate
+    except asyncio.CancelledError:
+        pass
+
+
+def _cancel_packet_counter(attack_id: Optional[str]) -> None:
+    task = _packet_counter_tasks.pop(attack_id, None) if attack_id else None
+    if task and not task.done():
+        task.cancel()
+
 
 async def auto_stop_attack(scenario: str, duration_sec: int, source_ip: str, target_ip: str, attack_id: str):
     await asyncio.sleep(duration_sec)
@@ -558,9 +713,11 @@ async def auto_stop_attack(scenario: str, duration_sec: int, source_ip: str, tar
         state.active_scenario = None
         state.attack_status = "idle"
         state.attack_start_time = 0
+        _cancel_packet_counter(attack_id)
 
         # Update lab attack record to COMPLETED
-        lab_attack_store.complete_attack(attack_id=attack_id, scenario=scenario)
+        async with store_lock:
+            lab_attack_store.complete_attack(attack_id=attack_id, scenario=scenario)
 
         stop_id = f"evt_{uuid.uuid4().hex[:12]}"
         now_str = datetime.now().strftime("%H:%M:%S")
@@ -604,38 +761,35 @@ async def auto_stop_attack(scenario: str, duration_sec: int, source_ip: str, tar
             }
         }
 
-        event_store.events.insert(0, stop_event)
-        if len(event_store.events) > 500:
-            event_store.events.pop()
-        event_store.last_event_id = stop_id
-        event_store.last_event_type = "ATTACK_STOPPED"
-        event_store.last_event_time = now_str
+        event_store.add_raw_event(stop_event)
 
         await manager.broadcast(stop_event)
 
-@app.post("/api/lab/start")
+@app.post("/api/lab/start", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def start_lab_attack(req: StartAttackRequest, request: Request):
-    # Enforce safe laboratory target constraint (allowing configured target or sensor IP or localhost)
-    target_ip = req.target_ip or req.targetIp or LAB_TARGET_IP or "10.64.157.145"
-    allowed_targets = {LAB_TARGET_IP, state.sensor_ip, "10.64.157.145", "127.0.0.1", "localhost"}
+    # Enforce safe laboratory target constraint: allow-list is derived purely
+    # from configured env vars (previously had a stray hardcoded IP literal
+    # baked in alongside them — see docs/GAPS_AND_FLAWS.md §3.5).
+    target_ip = req.target_ip or req.targetIp or LAB_TARGET_IP
+    allowed_targets = {LAB_TARGET_IP, state.sensor_ip, "127.0.0.1", "localhost"}
     if target_ip not in allowed_targets:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail=f"Simulations strictly restricted to authorized lab target {LAB_TARGET_IP}."
         )
 
     # Resolve authoritative source / controller IP (PC 1 Attacker Lab)
     # Priority: 1) Explicit payload source/controller IP, 2) Client IP if remote, 3) Configured LAB_ATTACKER_IP
     source_ip = req.source_ip or req.sourceIp or req.controller_ip or None
-    if not source_ip or source_ip in ["127.0.0.1", "localhost", target_ip, "10.64.157.145"]:
-        if request.client and request.client.host and request.client.host not in ["127.0.0.1", "localhost", target_ip, "10.64.157.145"]:
+    if not source_ip or source_ip in ["127.0.0.1", "localhost", target_ip]:
+        if request.client and request.client.host and request.client.host not in ["127.0.0.1", "localhost", target_ip]:
             source_ip = request.client.host
         else:
-            source_ip = LAB_ATTACKER_IP or "10.64.157.140"
+            source_ip = LAB_ATTACKER_IP
 
     # Enforce contract: Source MUST NEVER equal Target / NIDS Server in Two-PC Lab mode
-    if source_ip == target_ip or source_ip in ["10.64.157.145", target_ip]:
-        source_ip = LAB_ATTACKER_IP or "10.64.157.140"
+    if source_ip == target_ip:
+        source_ip = LAB_ATTACKER_IP
 
     state.attacker_ip = source_ip
     state.active_scenario = req.scenario
@@ -659,13 +813,14 @@ async def start_lab_attack(req: StartAttackRequest, request: Request):
     iso_str = datetime.now().isoformat()
 
     # Track session in authoritative LabAttackStore
-    attack_session = lab_attack_store.start_attack(
-        scenario=req.scenario,
-        intensity=state.attack_intensity,
-        source_ip=source_ip,
-        target_ip=target_ip,
-        duration_sec=state.attack_duration
-    )
+    async with store_lock:
+        attack_session = lab_attack_store.start_attack(
+            scenario=req.scenario,
+            intensity=state.attack_intensity,
+            source_ip=source_ip,
+            target_ip=target_ip,
+            duration_sec=state.attack_duration
+        )
     attack_id = attack_session["attack_id"]
 
     # Create notification in authoritative NotificationStore
@@ -714,12 +869,7 @@ async def start_lab_attack(req: StartAttackRequest, request: Request):
     logger.info(f"Authorized Lab Control Action: Attack Launched: {req.scenario} ({state.attack_intensity}) from {source_ip} against {target_ip}")
     logger.info(f"[AUTHORITATIVE ATTACK_STARTED PAYLOAD]: {json.dumps(control_event, default=str)}")
 
-    event_store.events.insert(0, control_event)
-    if len(event_store.events) > 500:
-        event_store.events.pop()
-    event_store.last_event_id = event_id
-    event_store.last_event_type = "ATTACK_STARTED"
-    event_store.last_event_time = now_str
+    event_store.add_raw_event(control_event)
 
     # Broadcast to all connected clients
     await manager.broadcast(control_event)
@@ -727,9 +877,13 @@ async def start_lab_attack(req: StartAttackRequest, request: Request):
     # Automatically stop attack after duration
     asyncio.create_task(auto_stop_attack(req.scenario, state.attack_duration, source_ip, target_ip, attack_id))
 
-    # In DEMO or HYBRID mode ONLY: simulate sensor detection pipeline after delay
+    # In DEMO or HYBRID mode ONLY: simulate sensor detection pipeline + a
+    # cosmetic packet counter after delay. LIVE mode runs neither.
     if state.mode in ["DEMO", "HYBRID"]:
         asyncio.create_task(simulate_detection_pipeline(req.scenario, state.attack_intensity))
+        _packet_counter_tasks[attack_id] = asyncio.create_task(
+            simulate_packet_counter(attack_id, req.scenario, state.attack_intensity)
+        )
 
     return {
         "started": True,
@@ -743,20 +897,22 @@ async def start_lab_attack(req: StartAttackRequest, request: Request):
         "message": f"Controlled scenario {req.scenario} launched from {source_ip} against {target_ip}."
     }
 
-@app.post("/api/lab/stop")
+@app.post("/api/lab/stop", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def stop_lab_attack(req: Optional[StopAttackRequest] = None):
     scenario = (req.scenario if req and req.scenario else None) or state.active_scenario or "PORT_SCAN"
-    target_ip = (req.target_ip or req.targetIp if req else None) or LAB_TARGET_IP or "10.64.157.145"
+    target_ip = (req.target_ip or req.targetIp if req else None) or LAB_TARGET_IP
     source_ip = (req.source_ip or req.sourceIp or req.controller_ip if req else None) or state.attacker_ip or LAB_ATTACKER_IP
-    if source_ip in ["10.64.157.145", target_ip]:
-        source_ip = LAB_ATTACKER_IP or "10.64.157.140"
+    if source_ip == target_ip:
+        source_ip = LAB_ATTACKER_IP
 
     req_attack_id = req.attack_id if req and req.attack_id else None
     state.active_scenario = None
     state.attack_status = "idle"
     state.attack_start_time = 0
+    _cancel_packet_counter(req_attack_id or lab_attack_store.active_attack_id)
 
-    attack_record = lab_attack_store.complete_attack(attack_id=req_attack_id, scenario=scenario)
+    async with store_lock:
+        attack_record = lab_attack_store.complete_attack(attack_id=req_attack_id, scenario=scenario)
     attack_id = attack_record["attack_id"] if attack_record else (req_attack_id or f"lab_attack_manual_{uuid.uuid4().hex[:4]}")
 
     stop_id = f"evt_{uuid.uuid4().hex[:12]}"
@@ -804,12 +960,7 @@ async def stop_lab_attack(req: Optional[StopAttackRequest] = None):
     logger.info(f"Authorized Lab Control Action: Attack Stopped: {scenario} from {source_ip} against {target_ip}")
     logger.info(f"[AUTHORITATIVE ATTACK_STOPPED PAYLOAD]: {json.dumps(stop_event, default=str)}")
 
-    event_store.events.insert(0, stop_event)
-    if len(event_store.events) > 500:
-        event_store.events.pop()
-    event_store.last_event_id = stop_id
-    event_store.last_event_type = "ATTACK_STOPPED"
-    event_store.last_event_time = now_str
+    event_store.add_raw_event(stop_event)
 
     await manager.broadcast(stop_event)
     return {"stopped": True, "attack_id": attack_id, "scenario": scenario, "event_id": stop_id, "source_ip": source_ip, "target_ip": target_ip}
@@ -823,12 +974,12 @@ async def get_lab_history():
 async def get_notifications():
     return {"notifications": notification_store.get_notifications()}
 
-@app.post("/api/notifications/read/{notification_id}")
+@app.post("/api/notifications/read/{notification_id}", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def mark_notification_read(notification_id: str):
     success = notification_store.mark_read(notification_id)
     return {"success": success, "notification_id": notification_id}
 
-@app.post("/api/notifications/read-all")
+@app.post("/api/notifications/read-all", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def mark_all_notifications_read():
     count = notification_store.mark_all_read()
     return {"success": True, "marked_count": count}
@@ -850,16 +1001,19 @@ async def get_active_threats():
 async def get_alerts():
     return event_store.threats[:20]
 
-@app.post("/api/threats/resolve/{threat_id}")
+@app.post("/api/threats/resolve/{threat_id}", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def resolve_threat_endpoint(threat_id: str):
-    success = event_store.resolve_threat(threat_id)
+    async with store_lock:
+        success = event_store.resolve_threat(threat_id)
     if not success:
         raise HTTPException(status_code=404, detail="Threat not found")
     return {"resolved": True, "threatId": threat_id}
 
-@app.post("/api/threats/inject")
+@app.post("/api/threats/inject", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def inject_threat_endpoint(req: InjectThreatRequest):
-    """Authoritative API endpoint to trigger a real detection event down the NIDS pipeline."""
+    """Manually injects a synthetic threat record into the event/threat store
+    and broadcasts it over the WebSocket, to exercise the UI's detection path
+    on demand. This does not run any classifier — see docs/GAPS_AND_FLAWS.md §1."""
     scenario = req.attackType
     source_desc = req.sourceIp or LAB_ATTACKER_IP
     target_desc = req.targetIp or LAB_TARGET_IP
@@ -888,10 +1042,12 @@ async def inject_threat_endpoint(req: InjectThreatRequest):
             {"factor": "Packet Burst Rate", "weight": 35, "baselineValue": "12.4k/s", "observedValue": "88.4k/s", "direction": "ELEVATED"},
             {"factor": "Session Asymmetry", "weight": 25, "baselineValue": "1.2:1", "observedValue": "99.1%", "direction": "DEVIATION"}
         ],
-        "rawPcapSample": req.rawPcapSample or f"IP {source_desc}.49820 > {target_desc}.80: Flags [S], seq {random.randint(100000, 999999)}"
+        "rawPcapSample": req.rawPcapSample or f"IP {source_desc}.49820 > {target_desc}.80: Flags [S], seq {random.randint(100000, 999999)}",
+        "simulated": True,
     }
 
-    event_msg = event_store.add_threat(new_threat)
+    async with store_lock:
+        event_msg = event_store.add_threat(new_threat)
     await manager.broadcast(event_msg)
     return {"injected": True, "threat": new_threat, "event_id": event_msg["event_id"]}
 
@@ -917,6 +1073,11 @@ async def get_diagnostics():
         "activeThreatsCount": len(active_threats),
         "criticalThreatsCount": len(critical_threats),
         "operationMode": state.mode,
+        "simulationNotice": (
+            "DEMO/HYBRID detections are pre-scripted per-scenario payloads, not output from a "
+            "trained classifier; LIVE mode performs no detection at all (no sensor is wired in). "
+            "See docs/GAPS_AND_FLAWS.md."
+        ),
         "timestamp": datetime.now().isoformat()
     }
 
@@ -1112,7 +1273,9 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
             "rawPcapSample": f"IP {LAB_ATTACKER_IP}.49281 > {LAB_TARGET_IP}.80: Flags [S], seq 4819204, win 1024, length 0"
         }
 
-    threat_event = event_store.add_threat(new_threat)
+    new_threat["simulated"] = True
+    async with store_lock:
+        threat_event = event_store.add_threat(new_threat)
     await manager.broadcast(threat_event)
 
 @app.get("/api/traffic")
@@ -1152,10 +1315,15 @@ async def get_traffic_history(duration: str = "5M"):
 
 @app.get("/api/model")
 async def get_model_info():
+    # Honesty notice (docs/GAPS_AND_FLAWS.md §1): there is no trained model
+    # file anywhere in this repo. Every figure below is an illustrative,
+    # hardcoded placeholder for the SOC-dashboard demo UI, not a measurement
+    # of a real classifier.
     return {
-        "modelType": "XGBoost Gradient Boosting Classifier + Isolation Forest",
-        "modelVersion": "1.4.2-PROD",
-        "status": "ONLINE",
+        "modelType": "XGBoost Gradient Boosting Classifier + Isolation Forest (SIMULATED — not actually trained/loaded)",
+        "modelVersion": "1.4.2-DEMO",
+        "status": "SIMULATED",
+        "simulated": True,
         "accuracy": 98.4,
         "precision": 97.6,
         "recall": 98.1,
@@ -1163,8 +1331,12 @@ async def get_model_info():
         "falsePositiveRate": 0.6,
         "averageInferenceTimeMs": 14,
         "totalInferences": 1542900,
-        "datasetTrainedOn": "CICIDS2017 + UNSW-NB15 + Isolated Lab Synthetic Flows",
-        "note": "XGBoost Classifier authoritative weights loaded"
+        "datasetTrainedOn": "CICIDS2017 + UNSW-NB15 + Isolated Lab Synthetic Flows (illustrative reference only; not actually trained on)",
+        "note": (
+            "These metrics are static placeholder values for demo purposes. No model artifact "
+            "exists in this repository and no inference runs against real traffic. See "
+            "docs/GAPS_AND_FLAWS.md §1 for details."
+        ),
     }
 
 @app.get("/api/features")
@@ -1235,37 +1407,45 @@ async def test_network_endpoint(req: Optional[NetworkTestRequest] = None):
 
 @app.get("/api/sensor/status")
 async def get_sensor_status_endpoint():
+    # Honesty notice (docs/GAPS_AND_FLAWS.md §2): "LIVE" sensor capture is
+    # never actually reached by this codebase — there is no Scapy/Zeek
+    # integration here. SIMULATED mode reports the cosmetic packet counter
+    # from simulate_packet_counter() rather than a fabricated fixed number.
     get_local_interfaces()
     is_live_capture = (state.sensor_mode == "LIVE")
     is_sim = (state.sensor_mode == "SIMULATED")
-    
+
     return {
-        "sensor": "Zeek Flow Ingestion / Scapy Wi-Fi Sniffer",
+        "sensor": "Zeek Flow Ingestion / Scapy Wi-Fi Sniffer (NOT IMPLEMENTED — see docs/GAPS_AND_FLAWS.md §2)",
         "mode": state.sensor_mode,
         "status": "ACTIVE_CAPTURE" if is_live_capture else "SIMULATED_INGESTION" if is_sim else "NOT_CONFIGURED",
+        "simulated": is_sim,
         "interface": state.active_transport,
         "capture_interface": f"{state.active_transport} ({state.sensor_ip})",
-        "capture_backend": "Scapy / Zeek Ingest Daemon" if is_live_capture else "Simulation Engine" if is_sim else "NONE",
-        "captured_packets": state.packets_sent if is_live_capture else (184200 if is_sim else 0),
-        "packetsCaptured": state.packets_sent if is_live_capture else (184200 if is_sim else 0),
+        "capture_backend": "Scapy / Zeek Ingest Daemon" if is_live_capture else "Simulation Engine (scripted counter, no real capture)" if is_sim else "NONE",
+        "captured_packets": state.packets_sent,
+        "packetsCaptured": state.packets_sent,
         "last_packet_timestamp": datetime.now().isoformat() if (is_live_capture or is_sim) else None,
-        "activeFlowsTracked": 1284 if is_sim else 0,
+        "activeFlowsTracked": int(state.packets_sent / 10) if is_sim else 0,
         "traffic_visibility": "FULL_TAP_REQUIRED" if state.active_transport == "WI-FI" else "PROMISCUOUS_ETHERNET",
         "wifi_limitation_note": "Passive Wi-Fi station mode cannot capture peer-to-peer unicast traffic due to 802.11 isolation / encryption. SPAN/TAP or monitor mode required for passive sniffing.",
-        "note": "Authoritative sensor capture status"
+        "note": "captured_packets/activeFlowsTracked reflect the scripted DEMO/HYBRID counter, not real packet capture."
     }
 
 @app.get("/api/ai/status")
 async def get_ai_status_endpoint():
+    # Honesty notice (docs/GAPS_AND_FLAWS.md §1): no model is loaded; nothing
+    # here performs real inference. See /api/model for the full disclosure.
     return {
-        "engine": "XGBoost v1.4.2 (78-Feature Vector)",
+        "engine": "XGBoost v1.4.2 (78-Feature Vector) — SIMULATED, not actually loaded",
         "mode": state.ai_engine_mode,
-        "status": "ONLINE",
+        "status": "SIMULATED",
+        "simulated": True,
         "avgInferenceLatencyMs": 14,
         "activeSchema": "78_FEATURES",
         "featuresCount": 78,
-        "anomalyScorer": "Isolation Forest + Statistical Z-Score",
-        "note": "Pre-trained model loaded on PC 2 detection server"
+        "anomalyScorer": "Isolation Forest + Statistical Z-Score (illustrative label only)",
+        "note": "No model artifact is loaded on this server; DEMO/HYBRID detections are pre-scripted. See docs/GAPS_AND_FLAWS.md §1."
     }
 
 # WebSocket Live Stream
@@ -1339,5 +1519,22 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
+
+    # `reload=True` spawns a file-watcher subprocess meant for active
+    # development, not for the "production"/demo entrypoint documented in the
+    # README (see docs/GAPS_AND_FLAWS.md §4.2). Opt in explicitly with
+    # NIDS_DEV_RELOAD=true while editing backend code; leave it unset/false
+    # for an actual lab run.
+    dev_reload = os.getenv("NIDS_DEV_RELOAD", "false").strip().lower() in ("1", "true", "yes")
+    bind_host = os.getenv("NIDS_BIND_HOST", "0.0.0.0")
+    bind_port = int(os.getenv("NIDS_API_PORT", "8000"))
+
+    if not os.getenv("NIDS_API_KEY", "").strip():
+        logger.warning(
+            "NIDS_API_KEY is not set — control endpoints (lab start/stop, threat "
+            "resolve/inject, notifications) will only accept requests from "
+            "localhost. Set NIDS_API_KEY in .env to allow other lab PCs to use them."
+        )
+
     # Bind to 0.0.0.0 for LAN & Wi-Fi communication
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host=bind_host, port=bind_port, reload=dev_reload)

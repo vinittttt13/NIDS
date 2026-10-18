@@ -1,6 +1,8 @@
 # AI-NIDS: AI-Based Real-Time Network Intrusion Detection System
 ## Comprehensive System Architecture & Technical Project Manual
 
+> **Source-of-truth note**: this file is the source for `PROJECT_DOCUMENTATION.docx`/`.pdf` (regenerate both with `python convert_docs.py` after editing this file — don't hand-edit the generated copies, they will drift). For a maintained, accurate account of what is and isn't actually implemented, see `README.md` and `docs/GAPS_AND_FLAWS.md`.
+
 ---
 
 ## 1. Executive Summary & Project Overview

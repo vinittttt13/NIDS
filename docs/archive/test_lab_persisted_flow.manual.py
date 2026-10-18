@@ -1,3 +1,9 @@
+# ARCHIVED — early draft smoke script (does have real asserts, unlike its
+# sibling in this folder, but isn't wired into pytest, isn't isolated between
+# runs, and predates the API-key auth added to /api/lab/start and friends —
+# it will now get 401s). Its scenarios were ported into backend/tests/test_api.py
+# (test_lab_start_and_stop_full_cycle, test_lab_start_and_stop_create_notifications).
+# Run the real suite with `cd backend && pytest`. See docs/GAPS_AND_FLAWS.md §5.3.
 import sys
 from fastapi.testclient import TestClient
 from backend.main import app, event_store, lab_attack_store, notification_store

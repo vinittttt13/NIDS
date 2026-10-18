@@ -1,3 +1,9 @@
+# ARCHIVED — manual smoke script, not an automated test (no assertions; it
+# just prints observed values for a human to eyeball, and requires a real
+# running server + hardcoded LAN IPs). Superseded by the real pytest suite in
+# backend/tests/ (run with `cd backend && pytest`), which runs in-process via
+# FastAPI's TestClient with no server/network required. Kept here only as a
+# manual two-PC end-to-end sanity check. See docs/GAPS_AND_FLAWS.md §5.3.
 import asyncio
 import json
 import urllib.request

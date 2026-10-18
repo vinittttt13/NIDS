@@ -4,69 +4,49 @@
 
 @layer base {
   body {
-    background-color: #080c14;
-    color: #f1f5f9;
-    font-family: 'Inter', sans-serif;
+    background-color: #0A0C0F;
+    color: #EDEFF2;
+    font-family: 'IBM Plex Sans', sans-serif;
   }
 }
 
-/* Custom Cyber/SOC scrollbars */
+/* Console scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0d131f;
+  background: #12151A;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #242A32;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #333A44;
 }
 
-/* Cyber grid background utility */
+/* Faint structural grid, used behind topology/network diagrams only */
 .cyber-grid {
   background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(30, 41, 59, 0.2) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(30, 41, 59, 0.2) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, rgba(36, 42, 50, 0.4) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(36, 42, 50, 0.4) 1px, transparent 1px);
 }
 
-.radar-sweep {
-  position: relative;
-  overflow: hidden;
-}
-
-.radar-sweep::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.08), transparent);
-  animation: sweep 4s infinite linear;
-}
-
-@keyframes sweep {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(300%); }
-}
-
-/* Subtle glow for critical alerts without being tacky */
+/* Severity-edge treatment: a left tick + faint wash, not a glowing box-shadow.
+   Reserved strictly for the four real severity levels. */
 .alert-glow-red {
-  box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.25);
+  box-shadow: inset 2px 0 0 0 #E5484D;
 }
 
 .alert-glow-orange {
-  box-shadow: 0 0 15px -3px rgba(249, 115, 22, 0.25);
+  box-shadow: inset 2px 0 0 0 #EF8D4C;
 }
 
 .alert-glow-blue {
-  box-shadow: 0 0 15px -3px rgba(59, 130, 246, 0.25);
+  box-shadow: inset 2px 0 0 0 #5E89B5;
 }

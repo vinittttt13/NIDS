@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+.git
+backend/.venv
+backend/__pycache__
+backend/tests/__pycache__
+backend/*.db
+.env
+.env.pc1
+.env.pc2
+*.docx
+*.pdf
+docs

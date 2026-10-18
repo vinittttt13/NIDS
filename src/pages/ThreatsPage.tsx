@@ -18,53 +18,41 @@ export const ThreatsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-[#1b273d]">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-extrabold text-white tracking-wide font-sans">
-              Live Threat Feed & Incident Center
-            </h1>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/30">
-              AI INTRUSION ALERTS
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time classification, risk scoring, and Explainable AI (XAI) feature attribution for all detected anomalies
-          </p>
-        </div>
+      <div className="pb-4 border-b border-line-700">
+        <h1 className="text-xl font-medium text-paper-100">Threat feed</h1>
+        <p className="text-[13px] text-paper-400 mt-1 max-w-[62ch]">
+          Every detection, with its risk score and the feature attribution behind it. Investigate an entry to see the full breakdown.
+        </p>
       </div>
 
-      {/* Threat Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-line-700">
         <MetricCard
-          title="Active Alerts"
+          title="Active alerts"
           value={activeCount}
-          subtitle="Awaiting Investigation"
+          subtitle="Awaiting investigation"
           icon={ShieldAlert}
-          color={activeCount > 0 ? 'red' : 'emerald'}
-          trend={activeCount > 0 ? 'Action Required' : 'Clean'}
+          tone={activeCount > 0 ? 'critical' : 'clear'}
+          trend={activeCount > 0 ? 'Action required' : 'Clean'}
         />
 
         <MetricCard
-          title="Critical Severity (SEV-1)"
+          title="Critical severity"
           value={criticalCount}
-          subtitle="DoS & Exfiltration"
+          subtitle="DoS & exfiltration patterns"
           icon={Flame}
-          color="red"
-          badge="High Impact"
+          tone={criticalCount > 0 ? 'critical' : 'neutral'}
         />
 
         <MetricCard
-          title="Mitigated & Resolved"
+          title="Resolved"
           value={resolvedCount}
-          subtitle="SOC Validated"
+          subtitle="Reviewed and closed"
           icon={CheckCircle}
-          color="emerald"
+          tone="clear"
         />
       </div>
 
-      {/* Full Threat Feed Table */}
-      <ThreatTable onInvestigate={handleInvestigate} title="Comprehensive Incident Feed & Classifications" />
+      <ThreatTable onInvestigate={handleInvestigate} title="All detections" />
     </div>
   );
 };

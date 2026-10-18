@@ -31,3 +31,17 @@ __pycache__/
 venv/
 env/
 .env.local
+
+# Real environment files (contain this deployment's actual network config /
+# API key). .env.example is the only one meant to be tracked as a template —
+# see docs/GAPS_AND_FLAWS.md §3.4.
+.env
+.env.pc1
+.env.pc2
+!.env.example
+
+# Backend SQLite data + test artifacts (see backend/storage.py)
+backend/*.db
+backend/.pytest_cache/
+backend/tests/__pycache__/
+pytest_cache/

@@ -1,5 +1,6 @@
 import type { AttackScenario, AttackTypeId, AttackIntensity, TimelineEvent } from '../types/attack';
 import type { IAttackController } from './contracts';
+import { apiFetch } from './apiClient';
 
 export const getLabTargetIp = (): string => {
   return import.meta.env.VITE_LAB_TARGET_HOST || import.meta.env.VITE_NIDS_HOST || '10.64.157.145';
@@ -321,7 +322,7 @@ export class RemoteAttackController implements IAttackController {
     try {
       const targetIp = getLabTargetIp();
       const sourceIp = getLabAttackerIp();
-      const res = await fetch(`${this.baseUrl}/start`, {
+      const res = await apiFetch(`${this.baseUrl}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -353,7 +354,7 @@ export class RemoteAttackController implements IAttackController {
     try {
       const targetIp = getLabTargetIp();
       const sourceIp = getLabAttackerIp();
-      const res = await fetch(`${this.baseUrl}/stop`, {
+      const res = await apiFetch(`${this.baseUrl}/stop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
