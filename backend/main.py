@@ -47,7 +47,7 @@ if os.path.exists(_env_file):
     except Exception:
         pass  # logger isn't configured yet; failure here just means defaults are used
 
-from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -139,6 +139,11 @@ class LabState:
     attack_start_time: float = 0
     attack_duration: int = 15
     packets_sent: int = 0
+    # Static display constants, NOT computed from any live measurement —
+    # there is no trained classifier or packet-capture sensor behind this
+    # backend (see docs/GAPS_AND_FLAWS.md §1/§2). Streamed over /ws/live
+    # tagged "metricsSimulated": true so the UI can label them honestly
+    # instead of implying they're live-measured. See docs/CODE_REVIEW_2026-10-18.md.
     detection_rate: float = 98.4
     avg_latency_ms: int = 184
 
@@ -202,7 +207,7 @@ class EventStore:
 
     def add_threat(self, threat: Dict[str, Any]) -> Dict[str, Any]:
         if "id" not in threat or not threat["id"]:
-            threat["id"] = f"ALT-{random.randint(1000, 9999)}"
+            threat["id"] = f"ALT-{uuid.uuid4().hex[:10]}"
         if "timestamp" not in threat or not threat["timestamp"]:
             threat["timestamp"] = datetime.now().strftime("%H:%M:%S")
         if "isoTime" not in threat:
@@ -699,6 +704,12 @@ async def simulate_packet_counter(attack_id: str, scenario: str, intensity: str)
             state.packets_sent += rate
     except asyncio.CancelledError:
         pass
+    finally:
+        # A task that exits because a different attack_id took over (not via
+        # _cancel_packet_counter) must still remove its own dict entry, or
+        # _packet_counter_tasks leaks a finished Task reference per such
+        # cycle. See docs/CODE_REVIEW_2026-10-18.md.
+        _packet_counter_tasks.pop(attack_id, None)
 
 
 def _cancel_packet_counter(attack_id: Optional[str]) -> None:
@@ -727,15 +738,16 @@ async def auto_stop_attack(scenario: str, duration_sec: int, source_ip: str, tar
         logger.info(f"[WS] broadcasting ATTACK_STOPPED to {len(manager.active_connections)} clients")
 
         # Create completion notification in notification store
-        notif = notification_store.add_notification(
-            notif_type="LAB_ATTACK_STOPPED",
-            title="Lab Attack Completed",
-            message=f"{scenario} completed after {duration_sec}s ({source_ip} → {target_ip})",
-            severity="INFO",
-            attack_id=attack_id,
-            event_id=stop_id,
-            data={"scenario": scenario, "duration": duration_sec, "source_ip": source_ip, "target_ip": target_ip}
-        )
+        async with store_lock:
+            notif = notification_store.add_notification(
+                notif_type="LAB_ATTACK_STOPPED",
+                title="Lab Attack Completed",
+                message=f"{scenario} completed after {duration_sec}s ({source_ip} → {target_ip})",
+                severity="INFO",
+                attack_id=attack_id,
+                event_id=stop_id,
+                data={"scenario": scenario, "duration": duration_sec, "source_ip": source_ip, "target_ip": target_ip}
+            )
 
         stop_event = {
             "event_id": stop_id,
@@ -761,12 +773,25 @@ async def auto_stop_attack(scenario: str, duration_sec: int, source_ip: str, tar
             }
         }
 
-        event_store.add_raw_event(stop_event)
+        async with store_lock:
+            event_store.add_raw_event(stop_event)
 
         await manager.broadcast(stop_event)
 
 @app.post("/api/lab/start", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def start_lab_attack(req: StartAttackRequest, request: Request):
+    # Reject a second concurrent attack instead of silently stomping the
+    # single global LabState (previously: a second /api/lab/start while one
+    # was running overwrote active_scenario/attack_start_time/packets_sent,
+    # left the first attack's DB row stuck ACTIVE forever since
+    # auto_stop_attack only completes when state.active_scenario matches,
+    # and orphaned its packet-counter task). See docs/CODE_REVIEW_2026-10-18.md.
+    if state.attack_status == "running":
+        raise HTTPException(
+            status_code=409,
+            detail=f"An attack ({state.active_scenario}) is already running. Stop it before starting another."
+        )
+
     # Enforce safe laboratory target constraint: allow-list is derived purely
     # from configured env vars (previously had a stray hardcoded IP literal
     # baked in alongside them — see docs/GAPS_AND_FLAWS.md §3.5).
@@ -824,15 +849,16 @@ async def start_lab_attack(req: StartAttackRequest, request: Request):
     attack_id = attack_session["attack_id"]
 
     # Create notification in authoritative NotificationStore
-    notif = notification_store.add_notification(
-        notif_type="LAB_ATTACK_STARTED",
-        title="Lab Attack Started",
-        message=f"{req.scenario} ({state.attack_intensity}) started from {source_ip} against {target_ip}",
-        severity="INFO",
-        attack_id=attack_id,
-        event_id=event_id,
-        data={"scenario": req.scenario, "intensity": state.attack_intensity, "source_ip": source_ip, "target_ip": target_ip, "duration": state.attack_duration}
-    )
+    async with store_lock:
+        notif = notification_store.add_notification(
+            notif_type="LAB_ATTACK_STARTED",
+            title="Lab Attack Started",
+            message=f"{req.scenario} ({state.attack_intensity}) started from {source_ip} against {target_ip}",
+            severity="INFO",
+            attack_id=attack_id,
+            event_id=event_id,
+            data={"scenario": req.scenario, "intensity": state.attack_intensity, "source_ip": source_ip, "target_ip": target_ip, "duration": state.attack_duration}
+        )
 
     # Create authoritative event object matching user specification
     control_event = {
@@ -869,7 +895,8 @@ async def start_lab_attack(req: StartAttackRequest, request: Request):
     logger.info(f"Authorized Lab Control Action: Attack Launched: {req.scenario} ({state.attack_intensity}) from {source_ip} against {target_ip}")
     logger.info(f"[AUTHORITATIVE ATTACK_STARTED PAYLOAD]: {json.dumps(control_event, default=str)}")
 
-    event_store.add_raw_event(control_event)
+    async with store_lock:
+        event_store.add_raw_event(control_event)
 
     # Broadcast to all connected clients
     await manager.broadcast(control_event)
@@ -921,15 +948,16 @@ async def stop_lab_attack(req: Optional[StopAttackRequest] = None):
 
     duration = req.duration_seconds if req and req.duration_seconds else (attack_record.get("duration_seconds") if attack_record else 15)
 
-    notif = notification_store.add_notification(
-        notif_type="LAB_ATTACK_STOPPED",
-        title="Lab Attack Stopped",
-        message=f"{scenario} stopped by operator ({source_ip} → {target_ip})",
-        severity="INFO",
-        attack_id=attack_id,
-        event_id=stop_id,
-        data={"scenario": scenario, "source_ip": source_ip, "target_ip": target_ip, "duration": duration}
-    )
+    async with store_lock:
+        notif = notification_store.add_notification(
+            notif_type="LAB_ATTACK_STOPPED",
+            title="Lab Attack Stopped",
+            message=f"{scenario} stopped by operator ({source_ip} → {target_ip})",
+            severity="INFO",
+            attack_id=attack_id,
+            event_id=stop_id,
+            data={"scenario": scenario, "source_ip": source_ip, "target_ip": target_ip, "duration": duration}
+        )
 
     stop_event = {
         "event_id": stop_id,
@@ -960,7 +988,8 @@ async def stop_lab_attack(req: Optional[StopAttackRequest] = None):
     logger.info(f"Authorized Lab Control Action: Attack Stopped: {scenario} from {source_ip} against {target_ip}")
     logger.info(f"[AUTHORITATIVE ATTACK_STOPPED PAYLOAD]: {json.dumps(stop_event, default=str)}")
 
-    event_store.add_raw_event(stop_event)
+    async with store_lock:
+        event_store.add_raw_event(stop_event)
 
     await manager.broadcast(stop_event)
     return {"stopped": True, "attack_id": attack_id, "scenario": scenario, "event_id": stop_id, "source_ip": source_ip, "target_ip": target_ip}
@@ -976,17 +1005,19 @@ async def get_notifications():
 
 @app.post("/api/notifications/read/{notification_id}", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def mark_notification_read(notification_id: str):
-    success = notification_store.mark_read(notification_id)
+    async with store_lock:
+        success = notification_store.mark_read(notification_id)
     return {"success": success, "notification_id": notification_id}
 
 @app.post("/api/notifications/read-all", dependencies=[Depends(require_api_key), Depends(enforce_rate_limit)])
 async def mark_all_notifications_read():
-    count = notification_store.mark_all_read()
+    async with store_lock:
+        count = notification_store.mark_all_read()
     return {"success": True, "marked_count": count}
 
 # Authoritative Event Store & Threat Endpoints
 @app.get("/api/events")
-async def get_events(limit: int = 100):
+async def get_events(limit: int = Query(default=100, ge=1, le=500)):
     return event_store.events[:limit]
 
 @app.get("/api/threats")
@@ -1019,7 +1050,7 @@ async def inject_threat_endpoint(req: InjectThreatRequest):
     target_desc = req.targetIp or LAB_TARGET_IP
 
     new_threat = {
-        "id": f"ALT-{random.randint(1000, 9999)}",
+        "id": f"ALT-{uuid.uuid4().hex[:10]}",
         "attackType": scenario,
         "category": req.category or "Network Availability",
         "severity": req.severity or "HIGH",
@@ -1090,7 +1121,7 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
     # Create scenario-specific detection payload
     if scenario == "DDOS_DISTRIBUTED_FLOOD":
         new_threat = {
-            "id": f"ALT-{random.randint(1000, 9999)}",
+            "id": f"ALT-{uuid.uuid4().hex[:10]}",
             "attackType": "DDoS Distributed Flood",
             "category": "Network Availability",
             "severity": "CRITICAL",
@@ -1117,7 +1148,7 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
         }
     elif scenario == "DOS_SYN_FLOOD":
         new_threat = {
-            "id": f"ALT-{random.randint(1000, 9999)}",
+            "id": f"ALT-{uuid.uuid4().hex[:10]}",
             "attackType": "DoS SYN Flood",
             "category": "Network Availability",
             "severity": "CRITICAL",
@@ -1144,7 +1175,7 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
         }
     elif scenario == "VOLUMETRIC_TRAFFIC_FLOOD":
         new_threat = {
-            "id": f"ALT-{random.randint(1000, 9999)}",
+            "id": f"ALT-{uuid.uuid4().hex[:10]}",
             "attackType": "Volumetric Traffic Flood",
             "category": "Network Availability",
             "severity": "HIGH",
@@ -1170,7 +1201,7 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
         }
     elif scenario == "BRUTE_FORCE":
         new_threat = {
-            "id": f"ALT-{random.randint(1000, 9999)}",
+            "id": f"ALT-{uuid.uuid4().hex[:10]}",
             "attackType": "Brute Force Authentication",
             "category": "Credential Attacks",
             "severity": "HIGH",
@@ -1196,7 +1227,7 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
         }
     elif scenario == "DNS_ANOMALY":
         new_threat = {
-            "id": f"ALT-{random.randint(1000, 9999)}",
+            "id": f"ALT-{uuid.uuid4().hex[:10]}",
             "attackType": "DNS Tunneling / Anomaly",
             "category": "Protocol / Behavior Anomalies",
             "severity": "MEDIUM",
@@ -1222,7 +1253,7 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
         }
     elif scenario == "SUSPICIOUS_FLOW":
         new_threat = {
-            "id": f"ALT-{random.randint(1000, 9999)}",
+            "id": f"ALT-{uuid.uuid4().hex[:10]}",
             "attackType": "Suspicious Lateral Flow",
             "category": "Protocol / Behavior Anomalies",
             "severity": "LOW",
@@ -1248,7 +1279,7 @@ async def simulate_detection_pipeline(scenario: str, intensity: str):
         }
     else:
         new_threat = {
-            "id": f"ALT-{random.randint(1000, 9999)}",
+            "id": f"ALT-{uuid.uuid4().hex[:10]}",
             "attackType": scenario.replace("_", " ").title(),
             "category": "Reconnaissance",
             "severity": "HIGH",
@@ -1454,20 +1485,21 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         # 1. Send initial system status snapshot
-        init_event = event_store.add_event(
-            "SYSTEM_STATUS",
-            {
-                "nidsHost": state.sensor_ip,
-                "status": "ONLINE",
-                "sensorMode": state.sensor_mode,
-                "aiEngineMode": state.ai_engine_mode,
-                "activeTransport": state.active_transport,
-                "transportMode": state.transport_mode,
-                "operationMode": state.mode,
-                "activeThreatsCount": len([t for t in event_store.threats if t.get("status") == "ACTIVE"]),
-                "lastEventId": event_store.last_event_id
-            }
-        )
+        async with store_lock:
+            init_event = event_store.add_event(
+                "SYSTEM_STATUS",
+                {
+                    "nidsHost": state.sensor_ip,
+                    "status": "ONLINE",
+                    "sensorMode": state.sensor_mode,
+                    "aiEngineMode": state.ai_engine_mode,
+                    "activeTransport": state.active_transport,
+                    "transportMode": state.transport_mode,
+                    "operationMode": state.mode,
+                    "activeThreatsCount": len([t for t in event_store.threats if t.get("status") == "ACTIVE"]),
+                    "lastEventId": event_store.last_event_id
+                }
+            )
         await websocket.send_json(init_event)
 
         # 2. Continuous telemetry loop
@@ -1505,6 +1537,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "criticalCount": len(crit_threats),
                     "detectionRate": state.detection_rate,
                     "avgLatencyMs": state.avg_latency_ms,
+                    "metricsSimulated": True,
                     "activeTransport": state.active_transport,
                     "timestamp": datetime.now().strftime("%H:%M:%S")
                 }
